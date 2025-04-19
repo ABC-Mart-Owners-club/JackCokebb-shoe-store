@@ -15,9 +15,19 @@ public class OrderElement {
     private boolean isCanceled;
 
     public OrderElement(Long productId, Long quantity) {
+
         this.productId = productId;
         this.quantity = quantity;
         this.isCanceled = false;
+    }
+
+    public OrderElement(Long id, Long orderId, Long productId, Long quantity, boolean isCanceled) {
+
+        this.id = id;
+        this.orderId = orderId;
+        this.productId = productId;
+        this.quantity = quantity;
+        this.isCanceled = isCanceled;
     }
 
     public static OrderElement init(Long productId, Long quantity) {

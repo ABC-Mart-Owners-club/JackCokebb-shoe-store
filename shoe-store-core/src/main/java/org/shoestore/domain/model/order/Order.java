@@ -29,6 +29,14 @@ public class Order {
         return new Order(customerId, orderElements);
     }
 
+    public Order(Long id, Long customerId, Map<Long, OrderElement> orderElements, Long totalPrice) {
+
+        this.id = id;
+        this.customerId = customerId;
+        this.orderElements = orderElements;
+        this.totalPrice = totalPrice;
+    }
+
     public Set<Long> getProductIds() {
 
         return Optional.ofNullable(orderElements)
