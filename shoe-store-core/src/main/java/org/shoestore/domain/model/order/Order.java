@@ -3,6 +3,7 @@ package org.shoestore.domain.model.order;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.shoestore.domain.model.product.ProductPriceInfo;
@@ -59,5 +60,24 @@ public class Order {
         orderElementIds.stream()
             .filter(id -> orderElements.containsKey(id))
             .forEach(id -> orderElements.get(id).cancel());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Order order = (Order) o;
+        return Objects.equals(id, order.id) && Objects.equals(customerId,
+            order.customerId) && Objects.equals(orderElements, order.orderElements)
+            && Objects.equals(totalPrice, order.totalPrice);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, customerId, orderElements, totalPrice);
     }
 }

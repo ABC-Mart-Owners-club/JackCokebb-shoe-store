@@ -13,7 +13,13 @@ public class OrderCreateRequestDto {
 
     private List<OrderElementCreateDto> orderElements;
 
+    public OrderCreateRequestDto(Long customerId, List<OrderElementCreateDto> orderElements) {
+        this.customerId = customerId;
+        this.orderElements = orderElements;
+    }
+
     public Order toOrderDomain() {
+
         return Order.init(
             customerId,
             Optional.ofNullable(orderElements).orElseGet(ArrayList::new)
@@ -32,6 +38,11 @@ public class OrderCreateRequestDto {
         private Long productId;
 
         private Long quantity;
+
+        public OrderElementCreateDto(Long productId, Long quantity) {
+            this.productId = productId;
+            this.quantity = quantity;
+        }
 
         public Long getProductId() {
 
