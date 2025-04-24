@@ -1,12 +1,13 @@
 package org.shoestore.domain.model.order;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.shoestore.domain.model.product.ProductPriceInfo;
 
 public class Order {
 
@@ -14,27 +15,19 @@ public class Order {
 
     private Long customerId;
 
+    // key: productId
     private Map<Long, OrderElement> orderElements;
 
-    private Long totalPrice;
+    public Order(Long id, Long customerId, Map<Long, OrderElement> orderElements) {
 
-    private Order(Long customerId, Map<Long, OrderElement> orderElements) {
-
+        this.id = id;
         this.customerId = customerId;
         this.orderElements = orderElements;
     }
 
     public static Order init(Long customerId, Map<Long, OrderElement> orderElements) {
 
-        return new Order(customerId, orderElements);
-    }
-
-    public Order(Long id, Long customerId, Map<Long, OrderElement> orderElements, Long totalPrice) {
-
-        this.id = id;
-        this.customerId = customerId;
-        this.orderElements = orderElements;
-        this.totalPrice = totalPrice;
+        return new Order(getNewId(), customerId, orderElements);
     }
 
     public Set<Long> getProductIds() {
@@ -49,11 +42,10 @@ public class Order {
         return customerId;
     }
 
-    public void calculateTotalPrice(Map<Long, ProductPriceInfo> priceInfoMap) {
+    public Long getTotalPrice() {
 
-        this.totalPrice = orderElements.keySet().stream()
-            .map(priceInfoMap::get)
-            .mapToLong(ProductPriceInfo::getPrice)
+        return this.orderElements.values().stream()
+            .mapToLong(OrderElement::getPriceForEach)
             .sum();
     }
 
@@ -63,11 +55,15 @@ public class Order {
             .forEach(OrderElement::cancel);
     }
 
-    public void cancel(List<Long> orderElementIds) {
+    public void cancel(List<Long> productIds) {
 
-        orderElementIds.stream()
+        productIds.stream()
             .filter(id -> orderElements.containsKey(id))
             .forEach(id -> orderElements.get(id).cancel());
+    }
+
+    private static Long getNewId() {
+        return LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     @Override
@@ -80,12 +76,11 @@ public class Order {
         }
         Order order = (Order) o;
         return Objects.equals(id, order.id) && Objects.equals(customerId,
-            order.customerId) && Objects.equals(orderElements, order.orderElements)
-            && Objects.equals(totalPrice, order.totalPrice);
+            order.customerId) && Objects.equals(orderElements, order.orderElements);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, customerId, orderElements, totalPrice);
+        return Objects.hash(id, customerId, orderElements);
     }
 }

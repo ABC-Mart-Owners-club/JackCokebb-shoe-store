@@ -1,51 +1,43 @@
 package org.shoestore.domain.model.order;
 
 import java.util.Objects;
+import org.shoestore.domain.model.product.Product;
 
 public class OrderElement {
-
-    private Long id;
-
-    private Long orderId;
 
     private Long productId;
 
     private Long quantity;
 
+    private Long priceForEach;
+
     private boolean isCanceled;
 
-    public OrderElement(Long productId, Long quantity) {
+    public OrderElement(Long productId, Long priceForEach, Long quantity, boolean isCanceled) {
 
         this.productId = productId;
-        this.quantity = quantity;
-        this.isCanceled = false;
-    }
-
-    public OrderElement(Long id, Long orderId, Long productId, Long quantity, boolean isCanceled) {
-
-        this.id = id;
-        this.orderId = orderId;
-        this.productId = productId;
+        this.priceForEach = priceForEach;
         this.quantity = quantity;
         this.isCanceled = isCanceled;
     }
 
-    public static OrderElement init(Long productId, Long quantity) {
+    public static OrderElement init(Product product, Long quantity) {
 
-        return new OrderElement(productId, quantity);
+        return new OrderElement(product.getId(), product.getPrice(), quantity, false);
     }
 
     public Long getProductId() {
         return productId;
     }
 
-    public Long getQuantity() {
-        return quantity;
+    public Long getPriceForEach() {
+
+        return priceForEach;
     }
 
     public void cancel() {
 
-        this.isCanceled = false;
+        this.isCanceled = true;
     }
 
     @Override
@@ -57,13 +49,13 @@ public class OrderElement {
             return false;
         }
         OrderElement that = (OrderElement) o;
-        return isCanceled == that.isCanceled && Objects.equals(id, that.id)
-            && Objects.equals(orderId, that.orderId) && Objects.equals(productId,
-            that.productId) && Objects.equals(quantity, that.quantity);
+        return isCanceled == that.isCanceled && Objects.equals(productId, that.productId)
+            && Objects.equals(quantity, that.quantity) && Objects.equals(
+            priceForEach, that.priceForEach);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, orderId, productId, quantity, isCanceled);
+        return Objects.hash(productId, quantity, priceForEach, isCanceled);
     }
 }

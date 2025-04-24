@@ -42,32 +42,59 @@ public class OrderServiceCombineTest {
     @InjectMocks
     OrderServiceCombine orderServiceCombine;
 
+    private final static Long PRODUCT1_ID = 1L;
+    private final static Long PRODUCT2_ID = 2L;
+    private final static Long PRODUCT3_ID = 3L;
+
+    private final static Long PRODUCT1_QUANTITY = 1L;
+    private final static Long PRODUCT2_QUANTITY = 2L;
+    private final static Long PRODUCT3_QUANTITY = 3L;
+
+    private final static Long CUSTOMER1_ID = 1L;
+
+    private final static String PRODUCT1_NAME = "Product 1";
+    private final static String PRODUCT2_NAME = "Product 2";
+    private final static String PRODUCT3_NAME = "Product 3";
+
+    private final static Long PRODUCT1_PRICE = 123L;
+    private final static Long PRODUCT2_PRICE = 456L;
+    private final static Long PRODUCT3_PRICE = 789L;
+
+    private final static Long ORDER1_ID = 1L;
+
 
     @Test
     @DisplayName("Create Order Test")
     public void makeOrder() {
 
         // given
-        OrderElementCreateDto orderElementCreateDto1 = new OrderElementCreateDto(1L, 1L);
-        OrderElementCreateDto orderElementCreateDto2 = new OrderElementCreateDto(2L, 2L);
-        OrderElementCreateDto orderElementCreateDto3 = new OrderElementCreateDto(3L, 3L);
-        OrderCreateRequestDto orderCreateRequestDto = new OrderCreateRequestDto(1L,
+        OrderElementCreateDto orderElementCreateDto1 = new OrderElementCreateDto(PRODUCT1_ID, PRODUCT1_QUANTITY);
+        OrderElementCreateDto orderElementCreateDto2 = new OrderElementCreateDto(PRODUCT2_ID, PRODUCT2_QUANTITY);
+        OrderElementCreateDto orderElementCreateDto3 = new OrderElementCreateDto(PRODUCT3_ID, PRODUCT3_QUANTITY);
+        OrderCreateRequestDto orderCreateRequestDto = new OrderCreateRequestDto(CUSTOMER1_ID,
             List.of(orderElementCreateDto1, orderElementCreateDto2, orderElementCreateDto3));
 
-        Product product1 = new Product(1L, "shoe val 1", 1231L);
-        Product product2 = new Product(2L, "shoe val 2", 1232L);
-        Product product3 = new Product(3L, "shoe val 3", 1233L);
+        Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE);
+        Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE);
+        Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE);
 
-        Order actual = orderCreateRequestDto.toOrderDomain();
+        OrderElement orderElement1 = OrderElement.init(product1, PRODUCT1_QUANTITY);
+        OrderElement orderElement2 = OrderElement.init(product2, PRODUCT2_QUANTITY);
+        OrderElement orderElement3 = OrderElement.init(product3, PRODUCT3_QUANTITY);
 
-        // when
-        doNothing().when(customerService).validateCustomerExist(1L);
-        doNothing().when(productService).validateProductsExist(Set.of(1L, 2L, 3L));
-        when(productRepository.findAllByIds(Set.of(1L, 2L, 3L))).thenReturn(List.of(product1, product2, product3));
+        Order actual = Order.init(CUSTOMER1_ID,
+            Map.of(orderElement1.getProductId(), orderElement1, orderElement2.getProductId(),
+                orderElement2, orderElement3.getProductId(), orderElement3));
+
+        doNothing().when(customerService).validateCustomerExist(CUSTOMER1_ID);
+        doNothing().when(productService).validateProductsExist(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
+        when(productRepository.findAllByIds(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID))).thenReturn(List.of(product1, product2, product3));
         when(orderRepository.save(any(Order.class))).thenReturn(actual);
 
-        // then
+        // when
         Order test = orderServiceCombine.makeOrder(orderCreateRequestDto);
+
+        // then
         assertEquals(actual, test);
     }
 
@@ -76,42 +103,71 @@ public class OrderServiceCombineTest {
     public void testCancelOrder() {
 
         // given
-        OrderCancelRequest request = new OrderCancelRequest(1L);
+        OrderCancelRequest request = new OrderCancelRequest(ORDER1_ID);
 
-        OrderElement orderElement1 = new OrderElement(1L, 1L, 1L, 1L, false);
-        OrderElement orderElement2 = new OrderElement(2L, 1L, 2L, 1L, false);
-        OrderElement orderElement3 = new OrderElement(3L, 1L, 3L, 1L, false);
+        OrderElement orderElement1 = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, false);
+        OrderElement orderElement2 = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, false);
+        OrderElement orderElement3 = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, false);
 
         Map<Long, OrderElement> elements = Map.of(orderElement1.getProductId(), orderElement1,
             orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
             orderElement3);
 
-        Order actualOrder = new Order(1L, 1L, elements, 1L);
+        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, elements);
 
-        OrderElement orderElement1After = new OrderElement(1L, 1L, 1L, 1L, true);
-        OrderElement orderElement2After = new OrderElement(2L, 1L, 2L, 1L, true);
-        OrderElement orderElement3After = new OrderElement(3L, 1L, 3L, 1L, true);
 
-        Map<Long, OrderElement> elementsAfter = Map.of(orderElement1.getProductId(), orderElement1,
-            orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
-            orderElement3);
+        OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
+        OrderElement orderElement2After = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, true);
+        OrderElement orderElement3After = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, true);
 
-        Order actualOrderAfter = new Order(1L, 1L, elementsAfter, 1L);
+        Map<Long, OrderElement> elementsAfter = Map.of(orderElement1After.getProductId(), orderElement1After,
+            orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
+            orderElement3After);
+
+        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, elementsAfter);
 
         // when
-        when(orderRepository.findById(request.getOrderId())).thenReturn(actualOrder);
+        when(orderRepository.findById(request.getOrderId())).thenReturn(actual);
         when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
 
         // then
-
-        assertEquals(orderServiceCombine.cancelOrder(request), actualOrderAfter);
+        Order expected = orderServiceCombine.cancelOrder(request);
+        assertEquals(expected, actualOrderAfter);
     }
 
-    public Order cancelOrderPartially(OrderPartialCancelRequest requestDto) {
+    @Test
+    @DisplayName("Partial Cancellation Order Test")
+    public void partialCancelOrderPartially() {
 
-        Order order = orderRepository.findById(requestDto.getOrderId());
-        order.cancel(requestDto.getOrderElementIds());
+        // given
+        OrderPartialCancelRequest request = new OrderPartialCancelRequest(ORDER1_ID, List.of(PRODUCT1_ID));
 
-        return orderRepository.save(order);
+        OrderElement orderElement1 = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, false);
+        OrderElement orderElement2 = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, false);
+        OrderElement orderElement3 = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, false);
+
+        Map<Long, OrderElement> elements = Map.of(orderElement1.getProductId(), orderElement1,
+            orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
+            orderElement3);
+
+        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, elements);
+
+
+        OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
+        OrderElement orderElement2After = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, false);
+        OrderElement orderElement3After = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, false);
+
+        Map<Long, OrderElement> elementsAfter = Map.of(orderElement1After.getProductId(), orderElement1After,
+            orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
+            orderElement3After);
+
+        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, elementsAfter);
+
+        // when
+        when(orderRepository.findById(request.getOrderId())).thenReturn(actual);
+        when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
+
+        // then
+        assertEquals(orderServiceCombine.cancelOrderPartially(request), actualOrderAfter);
     }
 }

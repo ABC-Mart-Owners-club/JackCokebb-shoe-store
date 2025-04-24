@@ -1,11 +1,8 @@
 package org.shoestore.interfaces.order.dto;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
-import org.shoestore.domain.model.order.Order;
-import org.shoestore.domain.model.order.OrderElement;
 
 public class OrderCreateRequestDto {
 
@@ -18,19 +15,21 @@ public class OrderCreateRequestDto {
         this.orderElements = orderElements;
     }
 
-    public Order toOrderDomain() {
+    public Long getCustomerId() {
 
-        return Order.init(
-            customerId,
-            Optional.ofNullable(orderElements).orElseGet(ArrayList::new)
-                .stream()
-                .collect(
-                    Collectors.toMap(
-                        OrderElementCreateDto::getProductId,
-                        OrderElementCreateDto::toOrderElementDomain
-                    )
-                )
-        );
+        return customerId;
+    }
+
+    public List<OrderElementCreateDto> getOrderElements() {
+
+        return orderElements;
+    }
+
+    public Set<Long> getOrderedProductIds() {
+
+        return orderElements.stream()
+            .map(OrderElementCreateDto::getProductId)
+            .collect(Collectors.toSet());
     }
 
     public static class OrderElementCreateDto {
@@ -49,9 +48,9 @@ public class OrderCreateRequestDto {
             return productId;
         }
 
-        public OrderElement toOrderElementDomain() {
+        public Long getQuantity() {
 
-            return OrderElement.init(productId, quantity);
+            return quantity;
         }
     }
 }

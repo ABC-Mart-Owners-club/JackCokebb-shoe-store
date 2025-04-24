@@ -1,15 +1,15 @@
 package org.shoestore.application;
 
-import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.shoestore.domain.model.order.OrderElement;
 import org.shoestore.interfaces.order.dto.OrderCancelRequest;
 import org.shoestore.interfaces.order.dto.OrderCreateRequestDto;
 import org.shoestore.interfaces.order.dto.OrderPartialCancelRequest;
 import org.shoestore.domain.model.order.Order;
 import org.shoestore.domain.model.order.OrderRepository;
 import org.shoestore.domain.model.product.Product;
-import org.shoestore.domain.model.product.ProductPriceInfo;
 import org.shoestore.domain.model.product.ProductRepository;
 import org.shoestore.application.customer.CustomerService;
 import org.shoestore.application.product.ProductService;
@@ -22,7 +22,8 @@ public class OrderServiceCombine {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
 
-    public OrderServiceCombine(CustomerService customerService, ProductService productService, OrderRepository orderRepository, ProductRepository productRepository) {
+    public OrderServiceCombine(CustomerService customerService, ProductService productService,
+        OrderRepository orderRepository, ProductRepository productRepository) {
         this.customerService = customerService;
         this.productService = productService;
 
@@ -32,12 +33,16 @@ public class OrderServiceCombine {
 
     public Order makeOrder(OrderCreateRequestDto requestDto) {
 
-        Order order = requestDto.toOrderDomain();
+        Map<Long, Product> productMap = productRepository.findAllByIds(
+                requestDto.getOrderedProductIds())
+            .stream().collect(Collectors.toMap(Product::getId, Function.identity()));
 
+        Map<Long, OrderElement> elements = requestDto.getOrderElements().stream()
+            .map(e -> OrderElement.init(productMap.get(e.getProductId()), e.getQuantity()))
+            .collect(Collectors.toMap(OrderElement::getProductId, Function.identity()));
+
+        Order order = Order.init(requestDto.getCustomerId(), elements);
         validateNewOrder(order);
-
-        Map<Long, ProductPriceInfo> priceInfoMap = getPriceInfoMap(order);
-        order.calculateTotalPrice(priceInfoMap);
 
         return orderRepository.save(order);
     }
@@ -53,17 +58,9 @@ public class OrderServiceCombine {
     public Order cancelOrderPartially(OrderPartialCancelRequest requestDto) {
 
         Order order = orderRepository.findById(requestDto.getOrderId());
-        order.cancel(requestDto.getOrderElementIds());
+        order.cancel(requestDto.getProductIds());
 
         return orderRepository.save(order);
-    }
-
-    private Map<Long, ProductPriceInfo> getPriceInfoMap(Order order) {
-        List<Product> products = productRepository.findAllByIds(order.getProductIds());
-
-        return products.stream()
-            .map(ProductPriceInfo::from)
-            .collect(Collectors.toMap(ProductPriceInfo::getProductId, info -> info));
     }
 
     private void validateNewOrder(Order order) {
