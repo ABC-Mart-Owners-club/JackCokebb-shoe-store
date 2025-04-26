@@ -77,6 +77,12 @@ public class Payment {
             this.payElements = new ArrayList<>();
         }
 
+        long elementSum = payElements.stream().mapToLong(PayElement::getPayAmount).sum();
+        if (elementSum != requestedAmount) {
+
+            throw new IllegalArgumentException("Pay amount mismatch");
+        }
+
         this.payElements.addAll(payElements);
         this.paidAt = LocalDateTime.now();
     }
