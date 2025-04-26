@@ -35,6 +35,11 @@ public class OrderElement {
         return priceForEach;
     }
 
+    public Long getQuantity() {
+
+        return quantity;
+    }
+
     public void cancel() {
 
         this.isCanceled = true;

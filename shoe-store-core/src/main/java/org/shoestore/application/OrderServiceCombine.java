@@ -4,15 +4,15 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.shoestore.domain.model.order.OrderElement;
+import org.shoestore.domain.model.pay.Payment;
+import org.shoestore.domain.model.pay.PayRepository;
 import org.shoestore.interfaces.order.dto.OrderCancelRequest;
-import org.shoestore.interfaces.order.dto.OrderCreateRequestDto;
+import org.shoestore.interfaces.order.dto.OrderCreateRequest;
 import org.shoestore.interfaces.order.dto.OrderPartialCancelRequest;
 import org.shoestore.domain.model.order.Order;
 import org.shoestore.domain.model.order.OrderRepository;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.product.ProductRepository;
-import org.shoestore.application.customer.CustomerService;
-import org.shoestore.application.product.ProductService;
 
 public class OrderServiceCombine {
 
@@ -21,17 +21,19 @@ public class OrderServiceCombine {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final PayRepository payRepository;
 
     public OrderServiceCombine(CustomerService customerService, ProductService productService,
-        OrderRepository orderRepository, ProductRepository productRepository) {
+        OrderRepository orderRepository, ProductRepository productRepository, PayRepository payRepository) {
         this.customerService = customerService;
         this.productService = productService;
 
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
+        this.payRepository = payRepository;
     }
 
-    public Order makeOrder(OrderCreateRequestDto requestDto) {
+    public Order makeOrder(OrderCreateRequest requestDto) {
 
         Map<Long, Product> productMap = productRepository.findAllByIds(
                 requestDto.getOrderedProductIds())
@@ -41,9 +43,15 @@ public class OrderServiceCombine {
             .map(e -> OrderElement.init(productMap.get(e.getProductId()), e.getQuantity()))
             .collect(Collectors.toMap(OrderElement::getProductId, Function.identity()));
 
-        Order order = Order.init(requestDto.getCustomerId(), elements);
+        long totalRequestedAmount = elements.values().stream()
+            .mapToLong(e -> e.getPriceForEach() * e.getQuantity())
+            .sum();
+
+        Payment payment = Payment.init(totalRequestedAmount);
+        Order order = Order.init(requestDto.getCustomerId(), payment.getId(), elements);
         validateNewOrder(order);
 
+        payRepository.save(payment);
         return orderRepository.save(order);
     }
 

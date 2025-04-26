@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 public class Order {
 
@@ -15,19 +16,22 @@ public class Order {
 
     private Long customerId;
 
+    private Long payId;
+
     // key: productId
     private Map<Long, OrderElement> orderElements;
 
-    public Order(Long id, Long customerId, Map<Long, OrderElement> orderElements) {
+    public Order(Long id, Long customerId, Long payId, Map<Long, OrderElement> orderElements) {
 
         this.id = id;
         this.customerId = customerId;
+        this.payId = payId;
         this.orderElements = orderElements;
     }
 
-    public static Order init(Long customerId, Map<Long, OrderElement> orderElements) {
+    public static Order init(Long customerId, Long payId, Map<Long, OrderElement> orderElements) {
 
-        return new Order(getNewId(), customerId, orderElements);
+        return new Order(getNewId(), customerId, payId, orderElements);
     }
 
     public Set<Long> getProductIds() {
@@ -63,7 +67,8 @@ public class Order {
     }
 
     private static Long getNewId() {
-        return LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
+
+        return UUID.randomUUID().getMostSignificantBits() - LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     @Override
@@ -75,6 +80,7 @@ public class Order {
             return false;
         }
         Order order = (Order) o;
+
         return Objects.equals(id, order.id) && Objects.equals(customerId,
             order.customerId) && Objects.equals(orderElements, order.orderElements);
     }

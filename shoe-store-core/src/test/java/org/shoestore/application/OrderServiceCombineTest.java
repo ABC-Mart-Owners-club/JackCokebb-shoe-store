@@ -14,16 +14,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.shoestore.application.customer.CustomerService;
-import org.shoestore.application.product.ProductService;
 import org.shoestore.domain.model.order.Order;
 import org.shoestore.domain.model.order.OrderElement;
 import org.shoestore.domain.model.order.OrderRepository;
+import org.shoestore.domain.model.pay.PayRepository;
+import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.product.ProductRepository;
 import org.shoestore.interfaces.order.dto.OrderCancelRequest;
-import org.shoestore.interfaces.order.dto.OrderCreateRequestDto;
-import org.shoestore.interfaces.order.dto.OrderCreateRequestDto.OrderElementCreateDto;
+import org.shoestore.interfaces.order.dto.OrderCreateRequest;
+import org.shoestore.interfaces.order.dto.OrderCreateRequest.OrderElementCreateDto;
 import org.shoestore.interfaces.order.dto.OrderPartialCancelRequest;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +38,8 @@ public class OrderServiceCombineTest {
     OrderRepository orderRepository;
     @Mock
     ProductRepository productRepository;
+    @Mock
+    PayRepository payRepository;
 
     @InjectMocks
     OrderServiceCombine orderServiceCombine;
@@ -62,6 +64,8 @@ public class OrderServiceCombineTest {
 
     private final static Long ORDER1_ID = 1L;
 
+    private final static Long REQUESTED_AMOUNT = 1368L;
+
 
     @Test
     @DisplayName("Create Order Test")
@@ -71,7 +75,7 @@ public class OrderServiceCombineTest {
         OrderElementCreateDto orderElementCreateDto1 = new OrderElementCreateDto(PRODUCT1_ID, PRODUCT1_QUANTITY);
         OrderElementCreateDto orderElementCreateDto2 = new OrderElementCreateDto(PRODUCT2_ID, PRODUCT2_QUANTITY);
         OrderElementCreateDto orderElementCreateDto3 = new OrderElementCreateDto(PRODUCT3_ID, PRODUCT3_QUANTITY);
-        OrderCreateRequestDto orderCreateRequestDto = new OrderCreateRequestDto(CUSTOMER1_ID,
+        OrderCreateRequest orderCreateRequest = new OrderCreateRequest(CUSTOMER1_ID,
             List.of(orderElementCreateDto1, orderElementCreateDto2, orderElementCreateDto3));
 
         Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE);
@@ -82,7 +86,9 @@ public class OrderServiceCombineTest {
         OrderElement orderElement2 = OrderElement.init(product2, PRODUCT2_QUANTITY);
         OrderElement orderElement3 = OrderElement.init(product3, PRODUCT3_QUANTITY);
 
-        Order actual = Order.init(CUSTOMER1_ID,
+        Payment payment = Payment.init(REQUESTED_AMOUNT);
+
+        Order actual = Order.init(CUSTOMER1_ID, payment.getId(),
             Map.of(orderElement1.getProductId(), orderElement1, orderElement2.getProductId(),
                 orderElement2, orderElement3.getProductId(), orderElement3));
 
@@ -90,9 +96,10 @@ public class OrderServiceCombineTest {
         doNothing().when(productService).validateProductsExist(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
         when(productRepository.findAllByIds(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID))).thenReturn(List.of(product1, product2, product3));
         when(orderRepository.save(any(Order.class))).thenReturn(actual);
+        when(payRepository.save(any(Payment.class))).thenAnswer(method -> method.getArguments()[0]);
 
         // when
-        Order test = orderServiceCombine.makeOrder(orderCreateRequestDto);
+        Order test = orderServiceCombine.makeOrder(orderCreateRequest);
 
         // then
         assertEquals(actual, test);
@@ -113,7 +120,9 @@ public class OrderServiceCombineTest {
             orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
             orderElement3);
 
-        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, elements);
+        Payment payment = Payment.init(REQUESTED_AMOUNT);
+
+        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elements);
 
 
         OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
@@ -124,7 +133,7 @@ public class OrderServiceCombineTest {
             orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
             orderElement3After);
 
-        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, elementsAfter);
+        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elementsAfter);
 
         // when
         when(orderRepository.findById(request.getOrderId())).thenReturn(actual);
@@ -150,7 +159,9 @@ public class OrderServiceCombineTest {
             orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
             orderElement3);
 
-        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, elements);
+        Payment payment = Payment.init(REQUESTED_AMOUNT);
+
+        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elements);
 
 
         OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
@@ -161,7 +172,7 @@ public class OrderServiceCombineTest {
             orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
             orderElement3After);
 
-        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, elementsAfter);
+        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elementsAfter);
 
         // when
         when(orderRepository.findById(request.getOrderId())).thenReturn(actual);

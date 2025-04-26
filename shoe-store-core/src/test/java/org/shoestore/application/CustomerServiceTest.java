@@ -1,4 +1,4 @@
-package org.shoestore.application.customer;
+package org.shoestore.application;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
