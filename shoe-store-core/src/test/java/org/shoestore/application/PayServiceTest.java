@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.shoestore.domain.model.pay.CardPaySummary;
 import org.shoestore.domain.model.pay.PayRepository;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.pay.Payment.IssuingBank;
@@ -84,8 +85,9 @@ public class PayServiceTest {
 
         CardPaymentSummaryRequest request = new CardPaymentSummaryRequest(IssuingBank.DAIHYUN, FROM_DATE, TO_DATE);
         List<PayElement> payElements = List.of(payElement1, payElement2);
+        CardPaySummary cardPaySummary = new CardPaySummary(IssuingBank.DAIHYUN, payElements);
 
-        when(payRepository.findCardPaymentByIssuingBankAndDate(request.getIssuingBank(), request.getFrom(), request.getTo())).thenReturn(payElements);
+        when(payRepository.findCardPaymentByIssuingBankAndDate(request.getIssuingBank(), request.getFrom(), request.getTo())).thenReturn(cardPaySummary);
 
         // when
         CardPaymentSummaryResponse response = payService.getSummary(request);

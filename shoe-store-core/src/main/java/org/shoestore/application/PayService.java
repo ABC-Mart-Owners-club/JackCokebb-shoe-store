@@ -1,6 +1,7 @@
 package org.shoestore.application;
 
 import java.util.List;
+import org.shoestore.domain.model.pay.CardPaySummary;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.pay.PayRepository;
 import org.shoestore.domain.model.pay.Payment.PayElement;
@@ -32,11 +33,9 @@ public class PayService {
 
     public CardPaymentSummaryResponse getSummary(CardPaymentSummaryRequest request) {
 
-        List<PayElement> cardPayments = payRepository.findCardPaymentByIssuingBankAndDate(
+        CardPaySummary summary = payRepository.findCardPaymentByIssuingBankAndDate(
             request.getIssuingBank(), request.getFrom(), request.getTo());
 
-        long sumAmount = cardPayments.stream().mapToLong(PayElement::getPayAmount).sum();
-
-        return new CardPaymentSummaryResponse(request.getIssuingBank(), sumAmount);
+        return new CardPaymentSummaryResponse(summary.getIssuingBank(), summary.getTotalAmount());
     }
 }
