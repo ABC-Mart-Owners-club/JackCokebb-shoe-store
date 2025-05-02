@@ -56,6 +56,11 @@ public class Order {
             .sum();
     }
 
+    public OrderStatus getStatus() {
+
+        return status;
+    }
+
     public void cancelAll() {
 
         orderElements.values()

@@ -1,7 +1,7 @@
 package org.shoestore.interfaces.pay.dto;
 
 import java.time.LocalDateTime;
-import org.shoestore.domain.model.pay.Payment.IssuingBank;
+import org.shoestore.domain.model.pay.IssuingBank;
 
 public class CardPaymentSummaryRequest {
 

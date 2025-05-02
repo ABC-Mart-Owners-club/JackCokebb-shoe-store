@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,12 +15,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.shoestore.domain.model.order.Order;
+import org.shoestore.domain.model.order.OrderRepository;
+import org.shoestore.domain.model.order.OrderStatus;
 import org.shoestore.domain.model.pay.CardPaySummary;
+import org.shoestore.domain.model.pay.IssuingBank;
+import org.shoestore.domain.model.pay.PayElement;
+import org.shoestore.domain.model.pay.PayMethod;
 import org.shoestore.domain.model.pay.PayRepository;
 import org.shoestore.domain.model.pay.Payment;
-import org.shoestore.domain.model.pay.Payment.IssuingBank;
-import org.shoestore.domain.model.pay.Payment.PayElement;
-import org.shoestore.domain.model.pay.Payment.PayMethod;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryRequest;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryResponse;
 import org.shoestore.interfaces.pay.dto.PayRequest;
@@ -32,6 +36,9 @@ public class PayServiceTest {
     @Mock
     PayRepository payRepository;
 
+    @Mock
+    OrderRepository orderRepository;
+
     @InjectMocks
     PayService payService;
 
@@ -42,6 +49,8 @@ public class PayServiceTest {
     static final Long PAY_ELEMENT_ID1 = 1L;
     static final Long PAY_ELEMENT_ID2 = 2L;
 
+    static final Long CUSTOMER_ID1 = 1L;
+
     static final LocalDateTime FROM_DATE = LocalDateTime.now().minusWeeks(1);
     static final LocalDateTime TO_DATE = LocalDateTime.now();
 
@@ -51,6 +60,7 @@ public class PayServiceTest {
 
         // given
         Payment expected = Payment.init(REQUESTED_AMOUNT);
+        Order order = Order.init(CUSTOMER_ID1, expected.getId(), new HashMap<>());
 
         PayElementDto payElementDto1 = new PayElementDto(PayMethod.CARD, IssuingBank.DAIHYUN, PAY_AMOUNT_500);
         PayElementDto payElementDto2 = new PayElementDto(PayMethod.CASH, null, PAY_AMOUNT_500);
@@ -61,6 +71,8 @@ public class PayServiceTest {
 
         when(payRepository.findById(expected.getId())).thenReturn(expected);
         when(payRepository.save(any(Payment.class))).thenAnswer(method -> method.getArguments()[0]);
+        when(orderRepository.findByPayId(expected.getId())).thenReturn(order);
+        when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
 
         Payment actual = new Payment(expected.getId(), REQUESTED_AMOUNT, List.of(payElement1, payElement2), expected.getCreatedAt(), expected.getPaidAt());
 
@@ -71,6 +83,8 @@ public class PayServiceTest {
         // then
         assertEquals(actual.getPayElements().size(), expected.getPayElements().size());
         assertNotNull(expected.getPaidAt());
+        assertEquals(order.getStatus(), OrderStatus.COMPLETED);
+        assertTrue(expected.isAllPaid());
         assertTrue(response.success());
 
     }

@@ -1,8 +1,8 @@
 package org.shoestore.interfaces.pay.dto;
 
 import java.util.List;
-import org.shoestore.domain.model.pay.Payment.IssuingBank;
-import org.shoestore.domain.model.pay.Payment.PayMethod;
+import org.shoestore.domain.model.pay.IssuingBank;
+import org.shoestore.domain.model.pay.PayMethod;
 
 public class PayRequest {
 
