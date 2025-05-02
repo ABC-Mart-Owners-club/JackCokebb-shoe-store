@@ -21,12 +21,15 @@ public class Order {
     // key: productId
     private Map<Long, OrderElement> orderElements;
 
+    private OrderStatus status;
+
     public Order(Long id, Long customerId, Long payId, Map<Long, OrderElement> orderElements) {
 
         this.id = id;
         this.customerId = customerId;
         this.payId = payId;
         this.orderElements = orderElements;
+        this.status = OrderStatus.REQUESTED;
     }
 
     public static Order init(Long customerId, Long payId, Map<Long, OrderElement> orderElements) {
@@ -57,6 +60,7 @@ public class Order {
 
         orderElements.values()
             .forEach(OrderElement::cancel);
+        status = OrderStatus.CANCELED;
     }
 
     public void cancel(List<Long> productIds) {
@@ -88,5 +92,12 @@ public class Order {
     @Override
     public int hashCode() {
         return Objects.hash(id, customerId, orderElements);
+    }
+
+    public void updateOrderStatusByPaidStatus(boolean allPaid) {
+
+        if (allPaid) {
+            status = OrderStatus.COMPLETED;
+        }
     }
 }

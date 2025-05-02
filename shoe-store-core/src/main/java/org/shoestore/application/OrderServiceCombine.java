@@ -43,11 +43,7 @@ public class OrderServiceCombine {
             .map(e -> OrderElement.init(productMap.get(e.getProductId()), e.getQuantity()))
             .collect(Collectors.toMap(OrderElement::getProductId, Function.identity()));
 
-        long totalRequestedAmount = elements.values().stream()
-            .mapToLong(e -> e.getPriceForEach() * e.getQuantity())
-            .sum();
-
-        Payment payment = Payment.init(totalRequestedAmount);
+        Payment payment = Payment.init(elements.values().stream().toList());
         Order order = Order.init(requestDto.getCustomerId(), payment.getId(), elements);
         validateNewOrder(order);
 

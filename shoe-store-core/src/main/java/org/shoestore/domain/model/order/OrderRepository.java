@@ -7,4 +7,6 @@ public interface OrderRepository {
     Order update(Order order);
 
     Order findById(Long id);
+
+    Order findByPayId(Long payId);
 }

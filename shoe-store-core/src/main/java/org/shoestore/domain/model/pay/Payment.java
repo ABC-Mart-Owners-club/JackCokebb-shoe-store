@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.shoestore.domain.model.order.OrderElement;
 
 public class Payment {
 
@@ -65,6 +66,15 @@ public class Payment {
         return new Payment(getNewId(), new ArrayList<>(), requestedAmount);
     }
 
+    public static Payment init(List<OrderElement> orderElements) {
+
+        long requestedAmount = orderElements.stream()
+            .mapToLong(e -> e.getPriceForEach() * e.getQuantity())
+            .sum();
+
+        return new Payment(getNewId(), new ArrayList<>(), requestedAmount);
+    }
+
     private static Long getNewId() {
 
         return UUID.randomUUID().getMostSignificantBits() - LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
@@ -85,6 +95,11 @@ public class Payment {
 
         this.payElements.addAll(payElements);
         this.paidAt = LocalDateTime.now();
+    }
+
+    public boolean isAllPaid() {
+
+        return payElements.stream().mapToLong(PayElement::getPayAmount).sum() == requestedAmount;
     }
 
     public static class PayElement {
