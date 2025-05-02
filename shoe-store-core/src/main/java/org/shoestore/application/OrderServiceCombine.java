@@ -1,8 +1,11 @@
 package org.shoestore.application;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.shoestore.domain.model.customer.CustomerRepository;
 import org.shoestore.domain.model.order.OrderElement;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.pay.PayRepository;
@@ -16,21 +19,18 @@ import org.shoestore.domain.model.product.ProductRepository;
 
 public class OrderServiceCombine {
 
-    private final CustomerService customerService;
-    private final ProductService productService;
-
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final PayRepository payRepository;
+    private final CustomerRepository customerRepository;
 
-    public OrderServiceCombine(CustomerService customerService, ProductService productService,
-        OrderRepository orderRepository, ProductRepository productRepository, PayRepository payRepository) {
-        this.customerService = customerService;
-        this.productService = productService;
+    public OrderServiceCombine(OrderRepository orderRepository, ProductRepository productRepository, PayRepository payRepository,
+        CustomerRepository customerRepository) {
 
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.payRepository = payRepository;
+        this.customerRepository = customerRepository;
     }
 
     public Order makeOrder(OrderCreateRequest requestDto) {
@@ -69,7 +69,24 @@ public class OrderServiceCombine {
 
     private void validateNewOrder(Order order) {
 
-        customerService.validateCustomerExist(order.getCustomerId());
-        productService.validateProductsExist(order.getProductIds());
+        validateCustomerExist(order.getCustomerId());
+        validateProductsExist(order.getProductIds());
+    }
+
+    public void validateCustomerExist(Long customerId) {
+
+        if (!customerRepository.existsById(customerId)) {
+
+            throw new IllegalArgumentException("Customer not found");
+        }
+    }
+
+    public void validateProductsExist(Set<Long> productIds) {
+
+        List<Product> products = productRepository.findAllByIds(productIds);
+        if (products.size() != productIds.size()) {
+
+            throw new IllegalArgumentException("Invalid product included");
+        }
     }
 }
