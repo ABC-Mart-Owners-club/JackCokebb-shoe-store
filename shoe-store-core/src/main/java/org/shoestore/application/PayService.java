@@ -7,6 +7,7 @@ import org.shoestore.domain.model.pay.CardPaySummary;
 import org.shoestore.domain.model.pay.PayElement;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.pay.PayRepository;
+import org.shoestore.infra.pay.PayElementRegistry;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryRequest;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryResponse;
 import org.shoestore.interfaces.pay.dto.PayRequest;
@@ -16,18 +17,20 @@ public class PayService {
 
     private final PayRepository payRepository;
     private final OrderRepository orderRepository;
+    private final PayElementRegistry payElementRegistry;
 
-    public PayService(PayRepository payRepository, OrderRepository orderRepository) {
+    public PayService(PayRepository payRepository, OrderRepository orderRepository,
+        PayElementRegistry payElementRegistry) {
         this.payRepository = payRepository;
         this.orderRepository = orderRepository;
+        this.payElementRegistry = payElementRegistry;
     }
 
     public PayResultResponse pay(PayRequest requestDto) {
 
         Payment payment = payRepository.findById(requestDto.getPayId());
         List<PayElement> payElements = requestDto.getPayElements().stream()
-            .map(req -> PayElement.init(req.getPayMethod(), req.getIssuingBank(),
-                req.getPayAmount()))
+            .map(req -> payElementRegistry.get(req.getPayMethod()).apply(req.getPayAmount()))
             .toList();
 
         payment.pay(payElements);
@@ -41,8 +44,8 @@ public class PayService {
     public CardPaymentSummaryResponse getSummary(CardPaymentSummaryRequest request) {
 
         CardPaySummary summary = payRepository.findCardPaymentByIssuingBankAndDate(
-            request.getIssuingBank(), request.getFrom(), request.getTo());
+            request.getPayMethod(), request.getFrom(), request.getTo());
 
-        return new CardPaymentSummaryResponse(summary.getIssuingBank(), summary.getTotalAmount());
+        return new CardPaymentSummaryResponse(summary.getPayMethod(), summary.getTotalAmount());
     }
 }

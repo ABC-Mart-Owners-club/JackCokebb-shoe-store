@@ -1,17 +1,17 @@
 package org.shoestore.interfaces.pay.dto;
 
 
-import org.shoestore.domain.model.pay.IssuingBank;
+import org.shoestore.domain.model.pay.PayMethod;
 
 public class CardPaymentSummaryResponse {
 
-    private IssuingBank issuingBank;
+    private PayMethod payMethod;
 
     private Long totalAmount;
 
-    public IssuingBank getIssuingBank() {
+    public PayMethod getPayMethod() {
 
-        return issuingBank;
+        return payMethod;
     }
 
     public Long getTotalAmount() {
@@ -19,9 +19,9 @@ public class CardPaymentSummaryResponse {
         return totalAmount;
     }
 
-    public CardPaymentSummaryResponse(IssuingBank issuingBank, Long totalAmount) {
+    public CardPaymentSummaryResponse(PayMethod payMethod, Long totalAmount) {
 
-        this.issuingBank = issuingBank;
+        this.payMethod = payMethod;
         this.totalAmount = totalAmount;
     }
 }

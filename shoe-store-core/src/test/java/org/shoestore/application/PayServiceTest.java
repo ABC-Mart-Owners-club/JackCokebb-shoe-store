@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,11 +20,14 @@ import org.shoestore.domain.model.order.Order;
 import org.shoestore.domain.model.order.OrderRepository;
 import org.shoestore.domain.model.order.OrderStatus;
 import org.shoestore.domain.model.pay.CardPaySummary;
-import org.shoestore.domain.model.pay.IssuingBank;
 import org.shoestore.domain.model.pay.PayElement;
 import org.shoestore.domain.model.pay.PayMethod;
 import org.shoestore.domain.model.pay.PayRepository;
 import org.shoestore.domain.model.pay.Payment;
+import org.shoestore.infra.pay.CashPayElement;
+import org.shoestore.infra.pay.DaiHyunCardPayElement;
+import org.shoestore.infra.pay.NaHaCardPayElement;
+import org.shoestore.infra.pay.PayElementRegistry;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryRequest;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryResponse;
 import org.shoestore.interfaces.pay.dto.PayRequest;
@@ -41,6 +45,12 @@ public class PayServiceTest {
 
     @InjectMocks
     PayService payService;
+
+    @BeforeEach
+    void setUp() {
+
+        payService = new PayService(payRepository, orderRepository, new PayElementRegistry());
+    }
 
     static final Long REQUESTED_AMOUNT = 1000L;
     static final Long PAY_AMOUNT_500 = 500L;
@@ -62,10 +72,10 @@ public class PayServiceTest {
         Payment expected = Payment.init(REQUESTED_AMOUNT);
         Order order = Order.init(CUSTOMER_ID1, expected.getId(), new HashMap<>());
 
-        PayElementDto payElementDto1 = new PayElementDto(PayMethod.CARD, IssuingBank.DAIHYUN, PAY_AMOUNT_500);
-        PayElementDto payElementDto2 = new PayElementDto(PayMethod.CASH, null, PAY_AMOUNT_500);
-        PayElement payElement1 = new PayElement(PAY_ELEMENT_ID1, PayMethod.CARD, IssuingBank.DAIHYUN, PAY_AMOUNT_500);
-        PayElement payElement2 = new PayElement(PAY_ELEMENT_ID2, PayMethod.CASH, null, PAY_AMOUNT_500);
+        PayElementDto payElementDto1 = new PayElementDto(PayMethod.NAHA_CARD, PAY_AMOUNT_500);
+        PayElementDto payElementDto2 = new PayElementDto(PayMethod.CASH, PAY_AMOUNT_500);
+        PayElement payElement1 = new NaHaCardPayElement(PAY_ELEMENT_ID1, PAY_AMOUNT_500);
+        PayElement payElement2 = new CashPayElement(PAY_ELEMENT_ID2, PAY_AMOUNT_500);
 
         PayRequest payRequest = new PayRequest(expected.getId(), List.of(payElementDto2, payElementDto1));
 
@@ -94,20 +104,20 @@ public class PayServiceTest {
     public void getSummary() {
 
         // given
-        PayElement payElement1 = new PayElement(PAY_ELEMENT_ID1, PayMethod.CARD, IssuingBank.DAIHYUN, PAY_AMOUNT_500);
-        PayElement payElement2 = new PayElement(PAY_ELEMENT_ID2, PayMethod.CASH, null, PAY_AMOUNT_500);
+        PayElement payElement1 = new DaiHyunCardPayElement(PAY_ELEMENT_ID1, PAY_AMOUNT_500);
+        PayElement payElement2 = new CashPayElement(PAY_ELEMENT_ID2, PAY_AMOUNT_500);
 
-        CardPaymentSummaryRequest request = new CardPaymentSummaryRequest(IssuingBank.DAIHYUN, FROM_DATE, TO_DATE);
+        CardPaymentSummaryRequest request = new CardPaymentSummaryRequest(PayMethod.DAIHYUN_CARD, FROM_DATE, TO_DATE);
         List<PayElement> payElements = List.of(payElement1, payElement2);
-        CardPaySummary cardPaySummary = new CardPaySummary(IssuingBank.DAIHYUN, payElements);
+        CardPaySummary cardPaySummary = new CardPaySummary(PayMethod.DAIHYUN_CARD, payElements);
 
-        when(payRepository.findCardPaymentByIssuingBankAndDate(request.getIssuingBank(), request.getFrom(), request.getTo())).thenReturn(cardPaySummary);
+        when(payRepository.findCardPaymentByIssuingBankAndDate(request.getPayMethod(), request.getFrom(), request.getTo())).thenReturn(cardPaySummary);
 
         // when
         CardPaymentSummaryResponse response = payService.getSummary(request);
 
         // then
-        assertNotNull(response.getIssuingBank());
+        assertNotNull(response.getPayMethod());
         assertEquals(response.getTotalAmount(), TOTAL_AMOUNT_1000);
     }
 }

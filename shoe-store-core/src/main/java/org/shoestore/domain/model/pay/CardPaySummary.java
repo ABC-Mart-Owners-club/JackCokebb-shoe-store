@@ -4,18 +4,17 @@ import java.util.List;
 
 public class CardPaySummary {
 
-    private IssuingBank issuingBank;
+    private PayMethod payMethod;
 
     private List<PayElement> cardPayElements;
 
-    public CardPaySummary(IssuingBank issuingBank, List<PayElement> cardPayElements) {
-        this.issuingBank = issuingBank;
+    public CardPaySummary(PayMethod payMethod, List<PayElement> cardPayElements) {
+        this.payMethod = payMethod;
         this.cardPayElements = cardPayElements;
     }
 
-    public IssuingBank getIssuingBank() {
-
-        return issuingBank;
+    public PayMethod getPayMethod() {
+        return payMethod;
     }
 
     public List<PayElement> getCardPayElements() {

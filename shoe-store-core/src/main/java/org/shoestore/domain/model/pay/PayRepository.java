@@ -9,5 +9,5 @@ public interface PayRepository {
 
     Payment findById(Long id);
 
-    CardPaySummary findCardPaymentByIssuingBankAndDate(IssuingBank issuingBank, LocalDateTime from, LocalDateTime to);
+    CardPaySummary findCardPaymentByIssuingBankAndDate(PayMethod payMethod, LocalDateTime from, LocalDateTime to);
 }

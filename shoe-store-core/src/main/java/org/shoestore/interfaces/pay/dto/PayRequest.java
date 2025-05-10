@@ -1,7 +1,6 @@
 package org.shoestore.interfaces.pay.dto;
 
 import java.util.List;
-import org.shoestore.domain.model.pay.IssuingBank;
 import org.shoestore.domain.model.pay.PayMethod;
 
 public class PayRequest {
@@ -29,24 +28,16 @@ public class PayRequest {
 
         private PayMethod payMethod;
 
-        private IssuingBank issuingBank;
-
         private Long payAmount;
 
-        public PayElementDto(PayMethod payMethod, IssuingBank issuingBank, Long payAmount) {
+        public PayElementDto(PayMethod payMethod, Long payAmount) {
             this.payMethod = payMethod;
-            this.issuingBank = issuingBank;
             this.payAmount = payAmount;
         }
 
         public PayMethod getPayMethod() {
 
             return payMethod;
-        }
-
-        public IssuingBank getIssuingBank() {
-
-            return issuingBank;
         }
 
         public Long getPayAmount() {

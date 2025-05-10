@@ -1,7 +1,8 @@
 package org.shoestore.domain.model.pay;
 
 public enum PayMethod {
-    CARD,
     CASH,
+    NAHA_CARD,
+    DAIHYUN_CARD,
     ;
 }
