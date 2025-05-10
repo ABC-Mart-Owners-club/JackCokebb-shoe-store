@@ -102,6 +102,8 @@ public class Payment {
             throw new IllegalArgumentException("Pay amount mismatch");
         }
 
+        payElements.forEach(PayElement::processPayment);
+
         this.payElements.addAll(payElements);
         this.payStatus = PayStatus.PAID;
         this.paidAt = LocalDateTime.now();
@@ -109,6 +111,7 @@ public class Payment {
 
     public void cancel() {
 
+        payElements.forEach(PayElement::cancelPayment);
         this.payStatus = PayStatus.CANCELED;
     }
 
