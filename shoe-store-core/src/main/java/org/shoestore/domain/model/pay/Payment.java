@@ -16,6 +16,8 @@ public class Payment {
 
     private List<PayElement> payElements;
 
+    private PayStatus payStatus;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime paidAt;
@@ -23,6 +25,11 @@ public class Payment {
     public Long getId() {
 
         return id;
+    }
+
+    public PayStatus getPayStatus() {
+
+        return payStatus;
     }
 
     public List<PayElement> getPayElements() {
@@ -45,16 +52,18 @@ public class Payment {
         return createdAt;
     }
 
-    private Payment(Long id, List<PayElement> payElements, Long requestedAmount) {
+    private Payment(Long id, PayStatus payStatus, List<PayElement> payElements, Long requestedAmount) {
         this.id = id;
+        this.payStatus = payStatus;
         this.requestedAmount = requestedAmount;
         this.payElements = payElements;
         this.createdAt = LocalDateTime.now();
     }
 
-    public Payment(Long id, Long requestedAmount, List<PayElement> payElements,
+    public Payment(Long id, Long requestedAmount, PayStatus payStatus, List<PayElement> payElements,
         LocalDateTime createdAt, LocalDateTime paidAt) {
         this.id = id;
+        this.payStatus = payStatus;
         this.requestedAmount = requestedAmount;
         this.payElements = payElements;
         this.createdAt = createdAt;
@@ -63,7 +72,7 @@ public class Payment {
 
     public static Payment init(Long requestedAmount) {
 
-        return new Payment(getNewId(), new ArrayList<>(), requestedAmount);
+        return new Payment(getNewId(), PayStatus.REQUESTED, new ArrayList<>(), requestedAmount);
     }
 
     public static Payment init(List<OrderElement> orderElements) {
@@ -72,7 +81,7 @@ public class Payment {
             .mapToLong(e -> e.getPriceForEach() * e.getQuantity())
             .sum();
 
-        return new Payment(getNewId(), new ArrayList<>(), requestedAmount);
+        return new Payment(getNewId(), PayStatus.REQUESTED, new ArrayList<>(), requestedAmount);
     }
 
     private static Long getNewId() {
@@ -95,6 +104,11 @@ public class Payment {
 
         this.payElements.addAll(payElements);
         this.paidAt = LocalDateTime.now();
+    }
+
+    public void cancel() {
+
+        this.payStatus = PayStatus.CANCELED;
     }
 
     public boolean isAllPaid() {

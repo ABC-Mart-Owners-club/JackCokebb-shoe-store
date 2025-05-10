@@ -49,10 +49,16 @@ public class Order {
         return customerId;
     }
 
+    public Long getPayId() {
+
+        return payId;
+    }
+
     public Long getTotalPrice() {
 
         return this.orderElements.values().stream()
-            .mapToLong(OrderElement::getPriceForEach)
+            .filter(orderElement -> !orderElement.isCanceled())
+            .mapToLong(OrderElement::getTotalPrice)
             .sum();
     }
 
@@ -104,5 +110,10 @@ public class Order {
         if (allPaid) {
             status = OrderStatus.COMPLETED;
         }
+    }
+
+    public void updatePayment(Long payId) {
+
+        this.payId = payId;
     }
 }

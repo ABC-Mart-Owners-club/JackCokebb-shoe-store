@@ -1,7 +1,6 @@
 package org.shoestore.interfaces.pay.dto;
 
 import java.util.List;
-import org.shoestore.domain.model.pay.PayMethod;
 
 public class PayRequest {
 
@@ -22,27 +21,5 @@ public class PayRequest {
     public List<PayElementDto> getPayElements() {
 
         return payElements;
-    }
-
-    public static class PayElementDto {
-
-        private PayMethod payMethod;
-
-        private Long payAmount;
-
-        public PayElementDto(PayMethod payMethod, Long payAmount) {
-            this.payMethod = payMethod;
-            this.payAmount = payAmount;
-        }
-
-        public PayMethod getPayMethod() {
-
-            return payMethod;
-        }
-
-        public Long getPayAmount() {
-
-            return payAmount;
-        }
     }
 }

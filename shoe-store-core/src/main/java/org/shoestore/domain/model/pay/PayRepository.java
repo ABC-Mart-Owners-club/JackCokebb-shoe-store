@@ -7,6 +7,8 @@ public interface PayRepository {
 
     Payment save(Payment payment);
 
+    List<Payment> saveAll(List<Payment> payments);
+
     Payment findById(Long id);
 
     CardPaySummary findCardPaymentByIssuingBankAndDate(PayMethod payMethod, LocalDateTime from, LocalDateTime to);

@@ -23,6 +23,7 @@ import org.shoestore.domain.model.pay.CardPaySummary;
 import org.shoestore.domain.model.pay.PayElement;
 import org.shoestore.domain.model.pay.PayMethod;
 import org.shoestore.domain.model.pay.PayRepository;
+import org.shoestore.domain.model.pay.PayStatus;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.infra.pay.CashPayElement;
 import org.shoestore.infra.pay.DaiHyunCardPayElement;
@@ -30,8 +31,8 @@ import org.shoestore.infra.pay.NaHaCardPayElement;
 import org.shoestore.infra.pay.PayElementRegistry;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryRequest;
 import org.shoestore.interfaces.pay.dto.CardPaymentSummaryResponse;
+import org.shoestore.interfaces.pay.dto.PayElementDto;
 import org.shoestore.interfaces.pay.dto.PayRequest;
-import org.shoestore.interfaces.pay.dto.PayRequest.PayElementDto;
 import org.shoestore.interfaces.pay.dto.PayResultResponse;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,7 +85,7 @@ public class PayServiceTest {
         when(orderRepository.findByPayId(expected.getId())).thenReturn(order);
         when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
 
-        Payment actual = new Payment(expected.getId(), REQUESTED_AMOUNT, List.of(payElement1, payElement2), expected.getCreatedAt(), expected.getPaidAt());
+        Payment actual = new Payment(expected.getId(), REQUESTED_AMOUNT, PayStatus.PAID, List.of(payElement1, payElement2), expected.getCreatedAt(), expected.getPaidAt());
 
         // when
         PayResultResponse response = payService.pay(payRequest);
