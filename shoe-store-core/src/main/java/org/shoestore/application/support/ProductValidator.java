@@ -1,6 +1,7 @@
 package org.shoestore.application.support;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.product.ProductRepository;

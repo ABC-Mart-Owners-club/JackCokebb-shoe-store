@@ -26,9 +26,25 @@ public class ProductServiceTest {
     @InjectMocks
     ProductService productService;
 
-    Product product1 = new Product(1L, "shoe val 1", 1231L);
-    Product product2 = new Product(2L, "shoe val 2", 1232L);
-    Product product3 = new Product(3L, "shoe val 3", 1233L);
+    private final static Long PRODUCT1_ID = 1L;
+    private final static Long PRODUCT2_ID = 2L;
+    private final static Long PRODUCT3_ID = 3L;
+
+    private final static Long PRODUCT1_STOCK_QUANTITY = 10L;
+    private final static Long PRODUCT2_STOCK_QUANTITY = 20L;
+    private final static Long PRODUCT3_STOCK_QUANTITY = 30L;
+
+    private final static String PRODUCT1_NAME = "Product 1";
+    private final static String PRODUCT2_NAME = "Product 2";
+    private final static String PRODUCT3_NAME = "Product 3";
+
+    private final static Long PRODUCT1_PRICE = 123L;
+    private final static Long PRODUCT2_PRICE = 456L;
+    private final static Long PRODUCT3_PRICE = 789L;
+
+    Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE, PRODUCT1_STOCK_QUANTITY);
+    Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE, PRODUCT2_STOCK_QUANTITY);
+    Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE, PRODUCT3_STOCK_QUANTITY);
 
     ProductPriceResponse productPriceResponse1 = ProductPriceResponse.from(product1);
     ProductPriceResponse productPriceResponse2 = ProductPriceResponse.from(product2);

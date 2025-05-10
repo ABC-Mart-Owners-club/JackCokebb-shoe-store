@@ -3,7 +3,6 @@ package org.shoestore.domain.model.pay;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
-import org.shoestore.infra.pay.DaiHyunCardPayElement;
 
 public abstract class PayElement {
 

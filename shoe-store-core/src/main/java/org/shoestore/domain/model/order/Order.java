@@ -2,6 +2,7 @@ package org.shoestore.domain.model.order;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,11 @@ public class Order {
         return status;
     }
 
+    public List<OrderElement> getOrderElements() {
+
+        return new ArrayList<>(orderElements.values());
+    }
+
     public void cancelAll() {
 
         orderElements.values()
@@ -83,7 +89,8 @@ public class Order {
 
     private static Long getNewId() {
 
-        return UUID.randomUUID().getMostSignificantBits() - LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
+        return UUID.randomUUID().getMostSignificantBits() - LocalDateTime.now()
+            .toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     @Override
