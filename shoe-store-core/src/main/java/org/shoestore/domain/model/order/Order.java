@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 public class Order {
 
@@ -15,19 +16,25 @@ public class Order {
 
     private Long customerId;
 
+    private Long payId;
+
     // key: productId
     private Map<Long, OrderElement> orderElements;
 
-    public Order(Long id, Long customerId, Map<Long, OrderElement> orderElements) {
+    private OrderStatus status;
+
+    public Order(Long id, Long customerId, Long payId, Map<Long, OrderElement> orderElements) {
 
         this.id = id;
         this.customerId = customerId;
+        this.payId = payId;
         this.orderElements = orderElements;
+        this.status = OrderStatus.REQUESTED;
     }
 
-    public static Order init(Long customerId, Map<Long, OrderElement> orderElements) {
+    public static Order init(Long customerId, Long payId, Map<Long, OrderElement> orderElements) {
 
-        return new Order(getNewId(), customerId, orderElements);
+        return new Order(getNewId(), customerId, payId, orderElements);
     }
 
     public Set<Long> getProductIds() {
@@ -42,17 +49,29 @@ public class Order {
         return customerId;
     }
 
+    public Long getPayId() {
+
+        return payId;
+    }
+
     public Long getTotalPrice() {
 
         return this.orderElements.values().stream()
-            .mapToLong(OrderElement::getPriceForEach)
+            .filter(orderElement -> !orderElement.isCanceled())
+            .mapToLong(OrderElement::getTotalPrice)
             .sum();
+    }
+
+    public OrderStatus getStatus() {
+
+        return status;
     }
 
     public void cancelAll() {
 
         orderElements.values()
             .forEach(OrderElement::cancel);
+        status = OrderStatus.CANCELED;
     }
 
     public void cancel(List<Long> productIds) {
@@ -63,7 +82,8 @@ public class Order {
     }
 
     private static Long getNewId() {
-        return LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
+
+        return UUID.randomUUID().getMostSignificantBits() - LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     @Override
@@ -75,6 +95,7 @@ public class Order {
             return false;
         }
         Order order = (Order) o;
+
         return Objects.equals(id, order.id) && Objects.equals(customerId,
             order.customerId) && Objects.equals(orderElements, order.orderElements);
     }
@@ -82,5 +103,17 @@ public class Order {
     @Override
     public int hashCode() {
         return Objects.hash(id, customerId, orderElements);
+    }
+
+    public void updateOrderStatusByPaidStatus(boolean allPaid) {
+
+        if (allPaid) {
+            status = OrderStatus.COMPLETED;
+        }
+    }
+
+    public void updatePayment(Long payId) {
+
+        this.payId = payId;
     }
 }

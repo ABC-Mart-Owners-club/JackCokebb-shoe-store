@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class OrderCreateRequestDto {
+public class OrderCreateRequest {
 
     private Long customerId;
 
     private List<OrderElementCreateDto> orderElements;
 
-    public OrderCreateRequestDto(Long customerId, List<OrderElementCreateDto> orderElements) {
+    public OrderCreateRequest(Long customerId, List<OrderElementCreateDto> orderElements) {
         this.customerId = customerId;
         this.orderElements = orderElements;
     }

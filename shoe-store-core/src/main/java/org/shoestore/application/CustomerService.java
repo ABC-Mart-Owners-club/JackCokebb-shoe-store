@@ -1,4 +1,4 @@
-package org.shoestore.application.customer;
+package org.shoestore.application;
 
 import org.shoestore.domain.model.customer.CustomerRepository;
 

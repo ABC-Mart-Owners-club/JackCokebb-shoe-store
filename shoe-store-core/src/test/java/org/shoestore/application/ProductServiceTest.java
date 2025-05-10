@@ -1,4 +1,4 @@
-package org.shoestore.application.product;
+package org.shoestore.application;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -8,39 +8,53 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.shoestore.application.customer.CustomerService;
-import org.shoestore.application.product.ProductService;
+import org.shoestore.application.support.CustomerValidator;
+import org.shoestore.application.support.ProductValidator;
+import org.shoestore.domain.model.customer.CustomerRepository;
 import org.shoestore.domain.model.order.Order;
 import org.shoestore.domain.model.order.OrderElement;
 import org.shoestore.domain.model.order.OrderRepository;
+import org.shoestore.domain.model.pay.PayMethod;
+import org.shoestore.domain.model.pay.PayRepository;
+import org.shoestore.domain.model.pay.PayStatus;
+import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.product.ProductRepository;
+import org.shoestore.infra.pay.PayElementRegistry;
 import org.shoestore.interfaces.order.dto.OrderCancelRequest;
-import org.shoestore.interfaces.order.dto.OrderCreateRequestDto;
-import org.shoestore.interfaces.order.dto.OrderCreateRequestDto.OrderElementCreateDto;
+import org.shoestore.interfaces.order.dto.OrderCreateRequest;
+import org.shoestore.interfaces.order.dto.OrderCreateRequest.OrderElementCreateDto;
 import org.shoestore.interfaces.order.dto.OrderPartialCancelRequest;
+import org.shoestore.interfaces.pay.dto.PayElementDto;
 
 @ExtendWith(MockitoExtension.class)
 public class OrderServiceCombineTest {
 
 
     @Mock
-    CustomerService customerService;
-    @Mock
-    ProductService productService;
-    @Mock
     OrderRepository orderRepository;
     @Mock
     ProductRepository productRepository;
+    @Mock
+    PayRepository payRepository;
+    @Mock
+    CustomerRepository customerRepository;
 
-    @InjectMocks
     OrderServiceCombine orderServiceCombine;
+
+
+    @BeforeEach
+    public void setUp() {
+
+        orderServiceCombine = new OrderServiceCombine(orderRepository, productRepository, payRepository, new CustomerValidator(customerRepository), new ProductValidator(productRepository), new PayElementRegistry());
+    }
 
     private final static Long PRODUCT1_ID = 1L;
     private final static Long PRODUCT2_ID = 2L;
@@ -62,6 +76,9 @@ public class OrderServiceCombineTest {
 
     private final static Long ORDER1_ID = 1L;
 
+    private final static Long REQUESTED_AMOUNT_TOTAL = 1368L;
+    private final static Long REQUESTED_AMOUNT_2_3 = 1245L;
+
 
     @Test
     @DisplayName("Create Order Test")
@@ -71,7 +88,7 @@ public class OrderServiceCombineTest {
         OrderElementCreateDto orderElementCreateDto1 = new OrderElementCreateDto(PRODUCT1_ID, PRODUCT1_QUANTITY);
         OrderElementCreateDto orderElementCreateDto2 = new OrderElementCreateDto(PRODUCT2_ID, PRODUCT2_QUANTITY);
         OrderElementCreateDto orderElementCreateDto3 = new OrderElementCreateDto(PRODUCT3_ID, PRODUCT3_QUANTITY);
-        OrderCreateRequestDto orderCreateRequestDto = new OrderCreateRequestDto(CUSTOMER1_ID,
+        OrderCreateRequest orderCreateRequest = new OrderCreateRequest(CUSTOMER1_ID,
             List.of(orderElementCreateDto1, orderElementCreateDto2, orderElementCreateDto3));
 
         Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE);
@@ -82,17 +99,19 @@ public class OrderServiceCombineTest {
         OrderElement orderElement2 = OrderElement.init(product2, PRODUCT2_QUANTITY);
         OrderElement orderElement3 = OrderElement.init(product3, PRODUCT3_QUANTITY);
 
-        Order actual = Order.init(CUSTOMER1_ID,
+        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL);
+
+        Order actual = Order.init(CUSTOMER1_ID, payment.getId(),
             Map.of(orderElement1.getProductId(), orderElement1, orderElement2.getProductId(),
                 orderElement2, orderElement3.getProductId(), orderElement3));
 
-        doNothing().when(customerService).validateCustomerExist(CUSTOMER1_ID);
-        doNothing().when(productService).validateProductsExist(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
+        when(customerRepository.existsById(CUSTOMER1_ID)).thenReturn(true);
         when(productRepository.findAllByIds(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID))).thenReturn(List.of(product1, product2, product3));
         when(orderRepository.save(any(Order.class))).thenReturn(actual);
+        when(payRepository.save(any(Payment.class))).thenAnswer(method -> method.getArguments()[0]);
 
         // when
-        Order test = orderServiceCombine.makeOrder(orderCreateRequestDto);
+        Order test = orderServiceCombine.makeOrder(orderCreateRequest);
 
         // then
         assertEquals(actual, test);
@@ -113,7 +132,9 @@ public class OrderServiceCombineTest {
             orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
             orderElement3);
 
-        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, elements);
+        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL);
+
+        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elements);
 
 
         OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
@@ -124,7 +145,7 @@ public class OrderServiceCombineTest {
             orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
             orderElement3After);
 
-        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, elementsAfter);
+        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elementsAfter);
 
         // when
         when(orderRepository.findById(request.getOrderId())).thenReturn(actual);
@@ -140,7 +161,11 @@ public class OrderServiceCombineTest {
     public void partialCancelOrderPartially() {
 
         // given
-        OrderPartialCancelRequest request = new OrderPartialCancelRequest(ORDER1_ID, List.of(PRODUCT1_ID));
+
+        PayElementDto payElementDto2 = new PayElementDto(PayMethod.NAHA_CARD, PRODUCT2_PRICE * PRODUCT2_QUANTITY);
+        PayElementDto payElementDto3 = new PayElementDto(PayMethod.CASH, PRODUCT3_PRICE * PRODUCT3_QUANTITY);
+
+        OrderPartialCancelRequest request = new OrderPartialCancelRequest(ORDER1_ID, List.of(PRODUCT1_ID), List.of(payElementDto2, payElementDto3));
 
         OrderElement orderElement1 = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, false);
         OrderElement orderElement2 = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, false);
@@ -150,7 +175,10 @@ public class OrderServiceCombineTest {
             orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
             orderElement3);
 
-        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, elements);
+        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL);
+        Payment newPayment = Payment.init(REQUESTED_AMOUNT_2_3);
+
+        Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elements);
 
 
         OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
@@ -161,13 +189,15 @@ public class OrderServiceCombineTest {
             orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
             orderElement3After);
 
-        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, elementsAfter);
+        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, newPayment.getId(), elementsAfter);
 
         // when
         when(orderRepository.findById(request.getOrderId())).thenReturn(actual);
         when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
+        when(payRepository.findById(actual.getPayId())).thenReturn(payment);
 
         // then
         assertEquals(orderServiceCombine.cancelOrderPartially(request), actualOrderAfter);
+        assertEquals(payment.getPayStatus(), PayStatus.CANCELED);
     }
 }

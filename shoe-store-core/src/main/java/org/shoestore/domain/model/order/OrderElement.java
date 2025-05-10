@@ -35,9 +35,24 @@ public class OrderElement {
         return priceForEach;
     }
 
+    public Long getQuantity() {
+
+        return quantity;
+    }
+
+    public Long getTotalPrice() {
+
+        return quantity * priceForEach;
+    }
+
     public void cancel() {
 
         this.isCanceled = true;
+    }
+
+    public boolean isCanceled() {
+
+        return isCanceled;
     }
 
     @Override

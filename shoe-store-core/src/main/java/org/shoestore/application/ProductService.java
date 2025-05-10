@@ -1,4 +1,4 @@
-package org.shoestore.application.product;
+package org.shoestore.application;
 
 import java.util.List;
 import java.util.Optional;
