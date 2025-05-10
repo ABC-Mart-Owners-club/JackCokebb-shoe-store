@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.shoestore.application.support.CustomerValidator;
+import org.shoestore.application.support.ProductValidator;
 import org.shoestore.domain.model.customer.CustomerRepository;
 import org.shoestore.domain.model.order.OrderElement;
 import org.shoestore.domain.model.pay.Payment;
@@ -22,15 +24,18 @@ public class OrderServiceCombine {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final PayRepository payRepository;
-    private final CustomerRepository customerRepository;
+    private final CustomerValidator customerValidator;
+    private final ProductValidator productValidator;
+
 
     public OrderServiceCombine(OrderRepository orderRepository, ProductRepository productRepository, PayRepository payRepository,
-        CustomerRepository customerRepository) {
+        CustomerValidator customerValidator, ProductValidator productValidator) {
 
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.payRepository = payRepository;
-        this.customerRepository = customerRepository;
+        this.customerValidator = customerValidator;
+        this.productValidator = productValidator;
     }
 
     public Order makeOrder(OrderCreateRequest requestDto) {
@@ -69,24 +74,7 @@ public class OrderServiceCombine {
 
     private void validateNewOrder(Order order) {
 
-        validateCustomerExist(order.getCustomerId());
-        validateProductsExist(order.getProductIds());
-    }
-
-    public void validateCustomerExist(Long customerId) {
-
-        if (!customerRepository.existsById(customerId)) {
-
-            throw new IllegalArgumentException("Customer not found");
-        }
-    }
-
-    public void validateProductsExist(Set<Long> productIds) {
-
-        List<Product> products = productRepository.findAllByIds(productIds);
-        if (products.size() != productIds.size()) {
-
-            throw new IllegalArgumentException("Invalid product included");
-        }
+        customerValidator.validateCustomerExist(order.getCustomerId());
+        productValidator.validateProductsExist(order.getProductIds());
     }
 }
