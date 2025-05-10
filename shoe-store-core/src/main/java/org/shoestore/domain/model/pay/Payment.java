@@ -52,7 +52,7 @@ public class Payment {
         return createdAt;
     }
 
-    private Payment(Long id, PayStatus payStatus, List<PayElement> payElements, Long requestedAmount) {
+    public Payment(Long id, PayStatus payStatus, List<PayElement> payElements, Long requestedAmount) {
         this.id = id;
         this.payStatus = payStatus;
         this.requestedAmount = requestedAmount;
@@ -103,6 +103,7 @@ public class Payment {
         }
 
         this.payElements.addAll(payElements);
+        this.payStatus = PayStatus.PAID;
         this.paidAt = LocalDateTime.now();
     }
 

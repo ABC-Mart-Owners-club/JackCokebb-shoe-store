@@ -1,6 +1,8 @@
 package org.shoestore.interfaces.order.dto;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.shoestore.interfaces.pay.dto.PayElementDto;
 
 public class OrderPartialCancelRequest {
@@ -26,6 +28,11 @@ public class OrderPartialCancelRequest {
     public List<Long> getProductIds() {
 
         return productIds;
+    }
+
+    public Set<Long> getProductIdsAsSet() {
+
+        return new HashSet<>(productIds);
     }
 
     public List<PayElementDto> getPayElements() {
