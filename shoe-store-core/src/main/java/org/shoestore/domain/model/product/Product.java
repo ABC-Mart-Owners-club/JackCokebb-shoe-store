@@ -44,8 +44,6 @@ public class Product {
         this.stock = stock.minusStockIfEnoughOrElseThrow(requestedQuantity);
     }
 
-
-
     public void addStock(Long requestedQuantity) {
 
         this.stock = stock.addStock(requestedQuantity);
