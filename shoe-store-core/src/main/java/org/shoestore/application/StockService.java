@@ -1,6 +1,7 @@
 package org.shoestore.application;
 
 import java.util.Map;
+import java.util.Optional;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.product.ProductRepository;
 import org.shoestore.interfaces.product.dto.StockAddRequest;
@@ -21,7 +22,10 @@ public class StockService {
 
         Map<Long, Product> productMap = productRepository.findAllByIdsAsMap(
             request.getProductIdsAsSet());
-        request.getStockElements().forEach(element -> productMap.get(element.getProductId()).addStock(element.getQuantity()));
+        request.getStockElements().forEach(element -> {
+            Product product = Optional.ofNullable(productMap.get(element.getProductId())).orElseThrow(IllegalArgumentException::new);
+            product.addStock(element.getQuantity());
+        });
 
         return new StockAddResponse(!productRepository.saveAll(productMap.values().stream().toList()).isEmpty());
     }

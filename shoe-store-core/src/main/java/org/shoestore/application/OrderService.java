@@ -43,12 +43,12 @@ public class OrderService {
 
     public Order makeOrder(OrderCreateRequest requestDto) {
 
+        customerValidator.validateCustomerExist(requestDto.getCustomerId());
+        productValidator.validateProductsExist(requestDto.getOrderedProductIds());
+
         Map<Long, Product> productMap = productRepository.findAllByIds(
                 requestDto.getOrderedProductIds())
             .stream().collect(Collectors.toMap(Product::getId, Function.identity()));
-
-        customerValidator.validateCustomerExist(requestDto.getCustomerId());
-        productValidator.validateProductsExist(requestDto.getOrderedProductIds());
 
         Map<Long, OrderElement> elements = requestDto.getOrderElements().stream()
             .map(e -> OrderElement.init(productMap.get(e.getProductId()), e.getQuantity()))
