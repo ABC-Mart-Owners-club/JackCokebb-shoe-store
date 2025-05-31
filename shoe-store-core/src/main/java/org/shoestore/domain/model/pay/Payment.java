@@ -57,7 +57,7 @@ public class Payment {
         this.payStatus = payStatus;
         this.requestedAmount = requestedAmount;
         this.payElements = payElements;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public Payment(Long id, Long requestedAmount, PayStatus payStatus, List<PayElement> payElements,
@@ -106,7 +106,7 @@ public class Payment {
 
         this.payElements.addAll(payElements);
         this.payStatus = PayStatus.PAID;
-        this.paidAt = LocalDateTime.now();
+        this.paidAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void cancel() {

@@ -1,6 +1,6 @@
 package org.shoestore.domain.model.product;
 
-import org.shoestore.domain.model.product.vo.Stock;
+import org.shoestore.domain.model.stock.vo.Stock;
 
 public class Product {
 
@@ -10,13 +10,10 @@ public class Product {
 
     private Long price;
 
-    private Stock stock;
-
-    public Product(Long id, String name, Long price, Long stockQuantity) {
+    public Product(Long id, String name, Long price) {
         this.id = id;
         this.name = name;
         this.price = price;
-        this.stock = new Stock(stockQuantity);
     }
 
     public Long getId() {
@@ -32,20 +29,5 @@ public class Product {
     public Long getPrice() {
 
         return price;
-    }
-
-    public Stock getStock() {
-
-        return stock;
-    }
-
-    public void minusStockIfEnoughOrElseThrow(Long requestedQuantity) {
-
-        this.stock = stock.minusStockIfEnoughOrElseThrow(requestedQuantity);
-    }
-
-    public void addStock(Long requestedQuantity) {
-
-        this.stock = stock.addStock(requestedQuantity);
     }
 }

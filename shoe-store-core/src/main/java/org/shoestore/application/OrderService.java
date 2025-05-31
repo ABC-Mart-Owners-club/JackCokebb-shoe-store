@@ -2,6 +2,7 @@ package org.shoestore.application;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.shoestore.application.support.CustomerValidator;
@@ -10,6 +11,8 @@ import org.shoestore.domain.model.order.OrderElement;
 import org.shoestore.domain.model.pay.PayElement;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.pay.PayRepository;
+import org.shoestore.domain.model.stock.StockRepository;
+import org.shoestore.domain.model.stock.vo.Stock;
 import org.shoestore.infra.pay.PayElementRegistry;
 import org.shoestore.interfaces.order.dto.OrderCancelRequest;
 import org.shoestore.interfaces.order.dto.OrderCreateRequest;
@@ -24,18 +27,23 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final PayRepository payRepository;
+    private final StockRepository stockRepository;
+
     private final CustomerValidator customerValidator;
     private final ProductValidator productValidator;
     private final PayElementRegistry payElementRegistry;
 
 
-    public OrderService(OrderRepository orderRepository, ProductRepository productRepository, PayRepository payRepository,
+    public OrderService(OrderRepository orderRepository, ProductRepository productRepository,
+        PayRepository payRepository,
+        StockRepository stockRepository,
         CustomerValidator customerValidator, ProductValidator productValidator,
         PayElementRegistry payElementRegistry) {
 
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.payRepository = payRepository;
+        this.stockRepository = stockRepository;
         this.customerValidator = customerValidator;
         this.productValidator = productValidator;
         this.payElementRegistry = payElementRegistry;
@@ -54,17 +62,27 @@ public class OrderService {
             .map(e -> OrderElement.init(productMap.get(e.getProductId()), e.getQuantity()))
             .collect(Collectors.toMap(OrderElement::getProductId, Function.identity()));
 
-        // 재고 차감
-        elements.forEach((productId, element) -> productMap.get(productId).minusStockIfEnoughOrElseThrow(element.getQuantity()));
-
         // 결제 정보 생성 (실제 결제 x)
         Payment payment = Payment.init(elements.values().stream().toList());
 
         Order order = Order.init(requestDto.getCustomerId(), payment.getId(), elements);
+        Order savedOrder = orderRepository.save(order);
+
+        // 재고 차감
+        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(
+            requestDto.getOrderedProductIds());
+        elements.forEach((productId, element) -> {
+            Stock updatedStock = Optional.ofNullable(stocksMap.get(productId))
+                .orElseThrow(() -> new IllegalArgumentException("product stock not found"))
+                .minusStockAndLeftHistoryIfEnoughOrElseThrow(savedOrder.getId(), element.getQuantity());
+            stocksMap.put(productId, updatedStock);
+        });
 
         productRepository.saveAll(productMap.values().stream().toList());
         payRepository.save(payment);
-        return orderRepository.save(order);
+        stockRepository.saveAll(stocksMap.values().stream().toList());
+
+        return savedOrder;
     }
 
     public Order cancelOrder(OrderCancelRequest requestDto) {
@@ -76,11 +94,13 @@ public class OrderService {
         payment.cancel();
 
         // 재고 재입고 처리
-        Map<Long, Product> productMap = productRepository.findAllByIdsAsMap(order.getProductIds());
-        order.getOrderElements().forEach((element) -> productMap.get(element.getProductId()).addStock(element.getQuantity()));
+        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(
+            order.getProductIds());
+        order.getOrderElements().forEach(
+            (element) -> stocksMap.get(element.getProductId()).restockByOrder(order.getId(), element.getQuantity()));
 
-        productRepository.saveAll(productMap.values().stream().toList());
         payRepository.save(payment);
+        stockRepository.saveAll(stocksMap.values().stream().toList());
         return orderRepository.save(order);
     }
 
@@ -101,13 +121,14 @@ public class OrderService {
         order.updatePayment(newPayment.getId());
 
         // 재고 재입고 처리
-        Map<Long, Product> productMap = productRepository.findAllByIdsAsMap(requestDto.getProductIdsAsSet());
+
+        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(requestDto.getProductIdsAsSet());
         order.getOrderElements().stream()
             .filter(element -> requestDto.getProductIdsAsSet().contains(element.getProductId()))
-            .forEach(element -> productMap.get(element.getProductId()).addStock(element.getQuantity()));
+            .forEach((element) -> stocksMap.get(element.getProductId()).restockByOrder(order.getId(), element.getQuantity()));
 
-        productRepository.saveAll(productMap.values().stream().toList());
         payRepository.saveAll(List.of(newPayment, previousPayment));
+        stockRepository.saveAll(stocksMap.values().stream().toList());
         return orderRepository.save(order);
     }
 }
