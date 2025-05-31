@@ -60,4 +60,14 @@ public class StockElement {
 
         this.quantity = this.quantity + quantity;
     }
+
+    public boolean isStocked30DaysAgo() {
+
+        return stockedAt.isBefore(LocalDateTime.now().minusDays(30));
+    }
+
+    public boolean isStocked7DaysAgo() {
+
+        return stockedAt.isBefore(LocalDateTime.now().minusDays(7));
+    }
 }

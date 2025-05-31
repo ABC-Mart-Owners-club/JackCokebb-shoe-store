@@ -49,6 +49,7 @@ public class OrderService {
         this.payElementRegistry = payElementRegistry;
     }
 
+    // Transaction으로 묶여있다고 가정
     public Order makeOrder(OrderCreateRequest requestDto) {
 
         customerValidator.validateCustomerExist(requestDto.getCustomerId());
@@ -58,8 +59,11 @@ public class OrderService {
                 requestDto.getOrderedProductIds())
             .stream().collect(Collectors.toMap(Product::getId, Function.identity()));
 
+        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(
+            requestDto.getOrderedProductIds());
+
         Map<Long, OrderElement> elements = requestDto.getOrderElements().stream()
-            .map(e -> OrderElement.init(productMap.get(e.getProductId()), e.getQuantity()))
+            .flatMap(e -> OrderElement.init(productMap.get(e.getProductId()), stocksMap.get(e.getProductId()), e.getQuantity()).stream())
             .collect(Collectors.toMap(OrderElement::getProductId, Function.identity()));
 
         // 결제 정보 생성 (실제 결제 x)
@@ -69,8 +73,6 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // 재고 차감
-        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(
-            requestDto.getOrderedProductIds());
         elements.forEach((productId, element) -> {
             Stock updatedStock = Optional.ofNullable(stocksMap.get(productId))
                 .orElseThrow(() -> new IllegalArgumentException("product stock not found"))

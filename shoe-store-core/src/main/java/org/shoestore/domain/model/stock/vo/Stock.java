@@ -129,4 +129,13 @@ public class Stock {
             .filter(history -> Objects.equals(history.getOrderId(), orderId))
             .toList();
     }
+
+    public StockElement findOldestElement() {
+
+        hasEnoughStock(1L);
+
+        this.stockElements.sort(Comparator.comparing(StockElement::getStockedAt));
+
+        return this.stockElements.getFirst();
+    }
 }
