@@ -1,11 +1,17 @@
 package org.shoestore.domain.model.order;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import org.shoestore.domain.model.product.Product;
+import org.shoestore.domain.model.stock.StockElement;
+import org.shoestore.domain.model.stock.vo.Stock;
 
 public class OrderElement {
 
     private Long productId;
+
+    private Long stockElementId;
 
     private Long quantity;
 
@@ -13,17 +19,34 @@ public class OrderElement {
 
     private boolean isCanceled;
 
-    public OrderElement(Long productId, Long priceForEach, Long quantity, boolean isCanceled) {
+    public OrderElement(Long productId, Long stockElementId, Long priceForEach, Long quantity,
+        boolean isCanceled) {
 
         this.productId = productId;
+        this.stockElementId = stockElementId;
         this.priceForEach = priceForEach;
         this.quantity = quantity;
         this.isCanceled = isCanceled;
     }
 
-    public static OrderElement init(Product product, Long quantity) {
+    public static List<OrderElement> init(Product product, Stock stock, Long quantity) {
+        stock.hasEnoughStock(quantity);
+        HashMap<Long, OrderElement> elementMap = new HashMap<>();
 
-        return new OrderElement(product.getId(), product.getPrice(), quantity, false);
+        while (quantity > 0) {
+
+            StockElement oldestElement = stock.findOldestElement();
+            OrderElement orderElement = elementMap.getOrDefault(
+                oldestElement.getId(),
+                new OrderElement(oldestElement.getProductId(), oldestElement.getId(),
+                    product.getActualPrice(oldestElement), 0L, false)
+            );
+
+            elementMap.put(oldestElement.getId(), orderElement.increaseQuantityAndReturn(1L));
+            quantity--;
+        }
+
+        return elementMap.values().stream().toList();
     }
 
     public Long getProductId() {
@@ -53,6 +76,16 @@ public class OrderElement {
     public boolean isCanceled() {
 
         return isCanceled;
+    }
+
+    public OrderElement increaseQuantityAndReturn(Long count) {
+        if (this.quantity == null) {
+            this.quantity = count;
+        }
+
+        this.quantity += count;
+
+        return this;
     }
 
     @Override

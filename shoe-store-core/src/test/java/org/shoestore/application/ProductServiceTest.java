@@ -42,9 +42,9 @@ public class ProductServiceTest {
     private final static Long PRODUCT2_PRICE = 456L;
     private final static Long PRODUCT3_PRICE = 789L;
 
-    Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE, PRODUCT1_STOCK_QUANTITY);
-    Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE, PRODUCT2_STOCK_QUANTITY);
-    Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE, PRODUCT3_STOCK_QUANTITY);
+    Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE);
+    Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE);
+    Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE);
 
     ProductPriceResponse productPriceResponse1 = ProductPriceResponse.from(product1);
     ProductPriceResponse productPriceResponse2 = ProductPriceResponse.from(product2);

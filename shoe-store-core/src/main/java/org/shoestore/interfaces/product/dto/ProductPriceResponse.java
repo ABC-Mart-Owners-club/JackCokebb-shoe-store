@@ -17,7 +17,7 @@ public class ProductPriceResponse {
 
     public static ProductPriceResponse from(Product product) {
 
-        return new ProductPriceResponse(product.getName(), product.getPrice());
+        return new ProductPriceResponse(product.getName(), product.getOriginPrice());
     }
 
     @Override

@@ -45,6 +45,11 @@ public class Order {
             .keySet();
     }
 
+    public Long getId() {
+
+        return id;
+    }
+
     public Long getCustomerId() {
 
         return customerId;

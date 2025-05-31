@@ -1,6 +1,6 @@
 package org.shoestore.domain.model.product;
 
-import org.shoestore.domain.model.product.vo.Stock;
+import org.shoestore.domain.model.stock.StockElement;
 
 public class Product {
 
@@ -10,13 +10,13 @@ public class Product {
 
     private Long price;
 
-    private Stock stock;
+    public static final double _30_DAYS_OLD_PRODUCT_DISCOUNTED_RATE = (double) 50 / 100;
+    public static final double _7_DAYS_OLD_PRODUCT_DISCOUNTED_RATE = (double) 30 / 100;
 
-    public Product(Long id, String name, Long price, Long stockQuantity) {
+    public Product(Long id, String name, Long price) {
         this.id = id;
         this.name = name;
         this.price = price;
-        this.stock = new Stock(stockQuantity);
     }
 
     public Long getId() {
@@ -29,23 +29,19 @@ public class Product {
         return name;
     }
 
-    public Long getPrice() {
+    public Long getOriginPrice() {
 
         return price;
     }
 
-    public Stock getStock() {
+    public Long getActualPrice(StockElement stockElement) {
 
-        return stock;
-    }
-
-    public void minusStockIfEnoughOrElseThrow(Long requestedQuantity) {
-
-        this.stock = stock.minusStockIfEnoughOrElseThrow(requestedQuantity);
-    }
-
-    public void addStock(Long requestedQuantity) {
-
-        this.stock = stock.addStock(requestedQuantity);
+        if (stockElement.isStocked30DaysAgo()) {
+            return getOriginPrice() - (long) Math.ceil(Double.valueOf(price) * (_30_DAYS_OLD_PRODUCT_DISCOUNTED_RATE));
+        } else if (stockElement.isStocked7DaysAgo()) {
+            return getOriginPrice() - (long) Math.ceil(Double.valueOf(price) * (_7_DAYS_OLD_PRODUCT_DISCOUNTED_RATE));
+        } else {
+            return getOriginPrice();
+        }
     }
 }
