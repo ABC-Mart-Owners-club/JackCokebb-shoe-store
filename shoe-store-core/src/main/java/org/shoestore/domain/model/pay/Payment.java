@@ -18,6 +18,8 @@ public class Payment {
 
     private PayStatus payStatus;
 
+    private Coupon couponApplied;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime paidAt;
@@ -30,6 +32,11 @@ public class Payment {
     public PayStatus getPayStatus() {
 
         return payStatus;
+    }
+
+    public Coupon getCouponApplied() {
+
+        return couponApplied;
     }
 
     public List<PayElement> getPayElements() {
@@ -52,41 +59,50 @@ public class Payment {
         return createdAt;
     }
 
-    public Payment(Long id, PayStatus payStatus, List<PayElement> payElements, Long requestedAmount) {
+    public Payment(Long id, PayStatus payStatus, List<PayElement> payElements, Long requestedAmount,
+        Coupon couponApplied) {
         this.id = id;
         this.payStatus = payStatus;
         this.requestedAmount = requestedAmount;
         this.payElements = payElements;
+        this.couponApplied = couponApplied;
         this.createdAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public Payment(Long id, Long requestedAmount, PayStatus payStatus, List<PayElement> payElements,
+        Coupon couponApplied,
         LocalDateTime createdAt, LocalDateTime paidAt) {
         this.id = id;
         this.payStatus = payStatus;
         this.requestedAmount = requestedAmount;
         this.payElements = payElements;
+        this.couponApplied = couponApplied;
         this.createdAt = createdAt;
         this.paidAt = paidAt;
     }
 
-    public static Payment init(Long requestedAmount) {
+    public static Payment init(Long requestedAmount, Coupon coupon) {
 
-        return new Payment(getNewId(), PayStatus.REQUESTED, new ArrayList<>(), requestedAmount);
+        return new Payment(getNewId(), PayStatus.REQUESTED, new ArrayList<>(),
+            (long) Math.ceil(requestedAmount - (requestedAmount * coupon.getDiscountRate())),
+            coupon);
     }
 
-    public static Payment init(List<OrderElement> orderElements) {
+    public static Payment init(List<OrderElement> orderElements, Coupon coupon) {
 
         long requestedAmount = orderElements.stream()
             .mapToLong(e -> e.getPriceForEach() * e.getQuantity())
             .sum();
 
-        return new Payment(getNewId(), PayStatus.REQUESTED, new ArrayList<>(), requestedAmount);
+        return new Payment(getNewId(), PayStatus.REQUESTED, new ArrayList<>(),
+            (long) Math.ceil(requestedAmount - (requestedAmount * coupon.getDiscountRate())),
+            coupon);
     }
 
     private static Long getNewId() {
 
-        return UUID.randomUUID().getMostSignificantBits() - LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
+        return UUID.randomUUID().getMostSignificantBits() - LocalDateTime.now()
+            .toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     public void pay(List<PayElement> payElements) {

@@ -67,7 +67,7 @@ public class OrderService {
             .collect(Collectors.toMap(OrderElement::getProductId, Function.identity()));
 
         // 결제 정보 생성 (실제 결제 x)
-        Payment payment = Payment.init(elements.values().stream().toList());
+        Payment payment = Payment.init(elements.values().stream().toList(), requestDto.getCoupon());
 
         Order order = Order.init(requestDto.getCustomerId(), payment.getId(), elements);
         Order savedOrder = orderRepository.save(order);
@@ -115,7 +115,7 @@ public class OrderService {
         previousPayment.cancel();
 
         // 결제 재진행
-        Payment newPayment = Payment.init(order.getTotalPrice());
+        Payment newPayment = Payment.init(order.getTotalPrice(), previousPayment.getCouponApplied());
         List<PayElement> payElements = requestDto.getPayElements().stream()
             .map(req -> payElementRegistry.get(req.getPayMethod()).apply(req.getPayAmount()))
             .toList();
