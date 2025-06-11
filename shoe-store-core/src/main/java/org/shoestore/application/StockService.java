@@ -4,7 +4,7 @@ import java.util.Map;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.product.ProductRepository;
 import org.shoestore.domain.model.stock.StockRepository;
-import org.shoestore.domain.model.stock.vo.Stock;
+import org.shoestore.domain.model.stock.Stock;
 import org.shoestore.interfaces.product.dto.StockAddRequest;
 import org.shoestore.interfaces.product.dto.StockAddResponse;
 import org.shoestore.interfaces.product.dto.StockFindRequest;

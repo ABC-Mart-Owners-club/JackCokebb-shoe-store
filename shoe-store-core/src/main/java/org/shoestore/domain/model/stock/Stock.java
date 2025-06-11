@@ -1,15 +1,14 @@
-package org.shoestore.domain.model.stock.vo;
+package org.shoestore.domain.model.stock;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.shoestore.domain.model.stock.StockElement;
-import org.shoestore.domain.model.stock.StockHistory;
 
 public class Stock {
 
+    // @Id
     private final Long productId;
 
     private final List<StockElement> stockElements;

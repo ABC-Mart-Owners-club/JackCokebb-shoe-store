@@ -3,7 +3,6 @@ package org.shoestore.domain.model.stock;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.shoestore.domain.model.stock.vo.Stock;
 
 public interface StockRepository {
 

@@ -5,13 +5,11 @@ import java.util.List;
 import java.util.Objects;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.stock.StockElement;
-import org.shoestore.domain.model.stock.vo.Stock;
+import org.shoestore.domain.model.stock.Stock;
 
 public class OrderElement {
 
     private Long productId;
-
-    private Long stockElementId;
 
     private Long quantity;
 
@@ -19,11 +17,10 @@ public class OrderElement {
 
     private boolean isCanceled;
 
-    public OrderElement(Long productId, Long stockElementId, Long priceForEach, Long quantity,
+    public OrderElement(Long productId, Long priceForEach, Long quantity,
         boolean isCanceled) {
 
         this.productId = productId;
-        this.stockElementId = stockElementId;
         this.priceForEach = priceForEach;
         this.quantity = quantity;
         this.isCanceled = isCanceled;
@@ -33,13 +30,13 @@ public class OrderElement {
         stock.hasEnoughStock(quantity);
         HashMap<Long, OrderElement> elementMap = new HashMap<>();
 
+        // stock 입고 날짜별 가격 계산을 위해 stock element를 stock element id로 관리
         while (quantity > 0) {
 
             StockElement oldestElement = stock.findOldestElement();
             OrderElement orderElement = elementMap.getOrDefault(
                 oldestElement.getId(),
-                new OrderElement(oldestElement.getProductId(), oldestElement.getId(),
-                    product.getActualPrice(oldestElement), 0L, false)
+                new OrderElement(oldestElement.getProductId(), product.getActualPrice(oldestElement), 0L, false)
             );
 
             elementMap.put(oldestElement.getId(), orderElement.increaseQuantityAndReturn(1L));

@@ -12,7 +12,7 @@ import org.shoestore.domain.model.pay.PayElement;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.pay.PayRepository;
 import org.shoestore.domain.model.stock.StockRepository;
-import org.shoestore.domain.model.stock.vo.Stock;
+import org.shoestore.domain.model.stock.Stock;
 import org.shoestore.infra.pay.PayElementRegistry;
 import org.shoestore.interfaces.order.dto.OrderCancelRequest;
 import org.shoestore.interfaces.order.dto.OrderCreateRequest;
@@ -123,7 +123,6 @@ public class OrderService {
         order.updatePayment(newPayment.getId());
 
         // 재고 재입고 처리
-
         Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(requestDto.getProductIdsAsSet());
         order.getOrderElements().stream()
             .filter(element -> requestDto.getProductIdsAsSet().contains(element.getProductId()))
