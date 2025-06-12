@@ -3,6 +3,7 @@ package org.shoestore.application;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.shoestore.application.support.CustomerValidator;
@@ -63,7 +64,8 @@ public class OrderService {
             requestDto.getOrderedProductIds());
 
         Map<Long, OrderElement> elements = requestDto.getOrderElements().stream()
-            .flatMap(e -> OrderElement.init(productMap.get(e.getProductId()), stocksMap.get(e.getProductId()), e.getQuantity()).stream())
+            .flatMap(e -> OrderElement.init(productMap.get(e.getProductId()),
+                stocksMap.get(e.getProductId()), e.getQuantity()).stream())
             .collect(Collectors.toMap(OrderElement::getProductId, Function.identity()));
 
         // 결제 정보 생성 (실제 결제 x)
@@ -76,7 +78,8 @@ public class OrderService {
         elements.forEach((productId, element) -> {
             Stock updatedStock = Optional.ofNullable(stocksMap.get(productId))
                 .orElseThrow(() -> new IllegalArgumentException("product stock not found"))
-                .minusStockAndLeftHistoryIfEnoughOrElseThrow(savedOrder.getId(), element.getQuantity());
+                .minusStockAndLeftHistoryIfEnoughOrElseThrow(savedOrder.getId(),
+                    element.getQuantity());
             stocksMap.put(productId, updatedStock);
         });
 
@@ -96,13 +99,9 @@ public class OrderService {
         payment.cancel();
 
         // 재고 재입고 처리
-        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(
-            order.getProductIds());
-        order.getOrderElements().forEach(
-            (element) -> stocksMap.get(element.getProductId()).restockByOrder(order.getId(), element.getQuantity()));
+        restock(order);
 
         payRepository.save(payment);
-        stockRepository.saveAll(stocksMap.values().stream().toList());
         return orderRepository.save(order);
     }
 
@@ -115,7 +114,8 @@ public class OrderService {
         previousPayment.cancel();
 
         // 결제 재진행
-        Payment newPayment = Payment.init(order.getTotalPrice(), previousPayment.getCouponApplied());
+        Payment newPayment = Payment.init(order.getTotalPrice(),
+            previousPayment.getCouponApplied());
         List<PayElement> payElements = requestDto.getPayElements().stream()
             .map(req -> payElementRegistry.get(req.getPayMethod()).apply(req.getPayAmount()))
             .toList();
@@ -123,13 +123,31 @@ public class OrderService {
         order.updatePayment(newPayment.getId());
 
         // 재고 재입고 처리
-        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(requestDto.getProductIdsAsSet());
-        order.getOrderElements().stream()
-            .filter(element -> requestDto.getProductIdsAsSet().contains(element.getProductId()))
-            .forEach((element) -> stocksMap.get(element.getProductId()).restockByOrder(order.getId(), element.getQuantity()));
+        restockPartially(order, requestDto.getProductIdsAsSet());
 
         payRepository.saveAll(List.of(newPayment, previousPayment));
-        stockRepository.saveAll(stocksMap.values().stream().toList());
         return orderRepository.save(order);
+    }
+
+    private List<Stock> restock(Order order) {
+        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(
+            order.getProductIds());
+
+        order.getOrderElements().forEach(
+            (element) -> stocksMap.get(element.getProductId())
+                .restockByOrder(order.getId(), element.getQuantity()));
+
+        return stockRepository.saveAll(stocksMap.values().stream().toList());
+    }
+
+    private List<Stock> restockPartially(Order order, Set<Long> productNos) {
+        Map<Long, Stock> stocksMap = stockRepository.findStocksByProductIdsAsMap(
+            productNos);
+        order.getOrderElements().stream()
+            .filter(element -> productNos.contains(element.getProductId()))
+            .forEach((element) -> stocksMap.get(element.getProductId())
+                .restockByOrder(order.getId(), element.getQuantity()));
+
+        return stockRepository.saveAll(stocksMap.values().stream().toList());
     }
 }

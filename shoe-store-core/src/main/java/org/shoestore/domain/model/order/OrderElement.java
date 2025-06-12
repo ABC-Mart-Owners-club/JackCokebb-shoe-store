@@ -3,6 +3,7 @@ package org.shoestore.domain.model.order;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.stock.StockElement;
 import org.shoestore.domain.model.stock.Stock;
@@ -43,7 +44,7 @@ public class OrderElement {
             quantity--;
         }
 
-        return elementMap.values().stream().toList();
+        return elementMap.values().stream().collect(Collectors.toList());
     }
 
     public Long getProductId() {
