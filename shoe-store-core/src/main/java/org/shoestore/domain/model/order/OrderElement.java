@@ -1,7 +1,12 @@
 package org.shoestore.domain.model.order;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.shoestore.domain.model.product.Product;
+import org.shoestore.domain.model.stock.StockElement;
+import org.shoestore.domain.model.stock.Stock;
 
 public class OrderElement {
 
@@ -13,7 +18,8 @@ public class OrderElement {
 
     private boolean isCanceled;
 
-    public OrderElement(Long productId, Long priceForEach, Long quantity, boolean isCanceled) {
+    public OrderElement(Long productId, Long priceForEach, Long quantity,
+        boolean isCanceled) {
 
         this.productId = productId;
         this.priceForEach = priceForEach;
@@ -21,9 +27,24 @@ public class OrderElement {
         this.isCanceled = isCanceled;
     }
 
-    public static OrderElement init(Product product, Long quantity) {
+    public static List<OrderElement> init(Product product, Stock stock, Long quantity) {
+        stock.hasEnoughStock(quantity);
+        HashMap<Long, OrderElement> elementMap = new HashMap<>();
 
-        return new OrderElement(product.getId(), product.getPrice(), quantity, false);
+        // stock 입고 날짜별 가격 계산을 위해 stock element를 stock element id로 관리
+        while (quantity > 0) {
+
+            StockElement oldestElement = stock.findOldestElement();
+            OrderElement orderElement = elementMap.getOrDefault(
+                oldestElement.getId(),
+                new OrderElement(oldestElement.getProductId(), product.getActualPrice(oldestElement), 0L, false)
+            );
+
+            elementMap.put(oldestElement.getId(), orderElement.increaseQuantityAndReturn(1L));
+            quantity--;
+        }
+
+        return elementMap.values().stream().collect(Collectors.toList());
     }
 
     public Long getProductId() {
@@ -53,6 +74,16 @@ public class OrderElement {
     public boolean isCanceled() {
 
         return isCanceled;
+    }
+
+    public OrderElement increaseQuantityAndReturn(Long count) {
+        if (this.quantity == null) {
+            this.quantity = count;
+        }
+
+        this.quantity += count;
+
+        return this;
     }
 
     @Override

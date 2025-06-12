@@ -20,6 +20,7 @@ import org.shoestore.domain.model.order.Order;
 import org.shoestore.domain.model.order.OrderRepository;
 import org.shoestore.domain.model.order.OrderStatus;
 import org.shoestore.domain.model.pay.CardPaySummary;
+import org.shoestore.domain.model.pay.Coupon;
 import org.shoestore.domain.model.pay.PayElement;
 import org.shoestore.domain.model.pay.PayMethod;
 import org.shoestore.domain.model.pay.PayRepository;
@@ -70,7 +71,7 @@ public class PayServiceTest {
     public void pay() {
 
         // given
-        Payment expected = Payment.init(REQUESTED_AMOUNT);
+        Payment expected = Payment.init(REQUESTED_AMOUNT, Coupon.NONE);
         Order order = Order.init(CUSTOMER_ID1, expected.getId(), new HashMap<>());
 
         PayElementDto payElementDto1 = new PayElementDto(PayMethod.NAHA_CARD, PAY_AMOUNT_500);
@@ -85,7 +86,7 @@ public class PayServiceTest {
         when(orderRepository.findByPayId(expected.getId())).thenReturn(order);
         when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
 
-        Payment actual = new Payment(expected.getId(), REQUESTED_AMOUNT, PayStatus.PAID, List.of(payElement1, payElement2), expected.getCreatedAt(), expected.getPaidAt());
+        Payment actual = new Payment(expected.getId(), REQUESTED_AMOUNT, PayStatus.PAID, List.of(payElement1, payElement2), Coupon.NONE, expected.getCreatedAt(), expected.getPaidAt());
 
         // when
         PayResultResponse response = payService.pay(payRequest);
