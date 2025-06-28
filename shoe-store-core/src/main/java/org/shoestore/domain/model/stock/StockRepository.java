@@ -10,18 +10,14 @@ public interface StockRepository {
 
     Stock findByProductId(Long productId);
 
+    Stock saveStock(Stock stock);
+
     List<StockElement> saveAllStockElement(List<StockElement> stockElements);
 
     List<StockHistory> saveAllStockHistory(List<StockHistory> stockElements);
 
-    default Stock save(Stock stock) {
-
-        return new Stock(stock.getProductId(), saveAllStockElement(stock.getStockElements()),
-            saveAllStockHistory(stock.getStockHistories()));
-    }
-
     default List<Stock> saveAll(List<Stock> stock) {
 
-        return stock.stream().map(this::save).toList();
+        return stock.stream().map(this::saveStock).toList();
     }
 }
