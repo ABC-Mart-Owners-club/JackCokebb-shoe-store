@@ -5,11 +5,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import org.shoestore.domain.model.customer.CustomerRepository;
 import org.shoestore.domain.model.order.Order;
 import org.shoestore.domain.model.order.OrderElement;
 import org.shoestore.domain.model.order.OrderRepository;
+import org.shoestore.domain.model.pay.Coupon;
 import org.shoestore.domain.model.pay.PayElement;
 import org.shoestore.domain.model.pay.PayMethod;
 import org.shoestore.domain.model.pay.PayRepository;
@@ -29,6 +31,9 @@ import org.shoestore.domain.model.pay.PayStatus;
 import org.shoestore.domain.model.pay.Payment;
 import org.shoestore.domain.model.product.Product;
 import org.shoestore.domain.model.product.ProductRepository;
+import org.shoestore.domain.model.stock.Stock;
+import org.shoestore.domain.model.stock.StockElement;
+import org.shoestore.domain.model.stock.StockRepository;
 import org.shoestore.infra.pay.CashPayElement;
 import org.shoestore.infra.pay.NaHaCardPayElement;
 import org.shoestore.infra.pay.PayElementRegistry;
@@ -49,6 +54,8 @@ public class OrderServiceTest {
     @Mock
     PayRepository payRepository;
     @Mock
+    StockRepository stockRepository;
+    @Mock
     CustomerRepository customerRepository;
 
     OrderService orderService;
@@ -57,7 +64,9 @@ public class OrderServiceTest {
     @BeforeEach
     public void setUp() {
 
-        orderService = new OrderService(orderRepository, productRepository, payRepository, new CustomerValidator(customerRepository), new ProductValidator(productRepository), new PayElementRegistry());
+        orderService = new OrderService(orderRepository, productRepository, payRepository,
+            stockRepository, new CustomerValidator(customerRepository),
+            new ProductValidator(productRepository), new PayElementRegistry());
     }
 
     private final static Long PRODUCT1_ID = 1L;
@@ -96,36 +105,51 @@ public class OrderServiceTest {
         OrderElementCreateDto orderElementCreateDto1 = new OrderElementCreateDto(PRODUCT1_ID, PRODUCT1_QUANTITY);
         OrderElementCreateDto orderElementCreateDto2 = new OrderElementCreateDto(PRODUCT2_ID, PRODUCT2_QUANTITY);
         OrderElementCreateDto orderElementCreateDto3 = new OrderElementCreateDto(PRODUCT3_ID, PRODUCT3_QUANTITY);
-        OrderCreateRequest orderCreateRequest = new OrderCreateRequest(CUSTOMER1_ID,
-            List.of(orderElementCreateDto1, orderElementCreateDto2, orderElementCreateDto3));
+        OrderCreateRequest orderCreateRequest = new OrderCreateRequest(
+            CUSTOMER1_ID,
+            Coupon.NONE,
+            List.of(orderElementCreateDto1, orderElementCreateDto2, orderElementCreateDto3)
+        );
 
-        Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE, PRODUCT1_STOCK_QUANTITY);
-        Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE, PRODUCT2_STOCK_QUANTITY);
-        Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE, PRODUCT3_STOCK_QUANTITY);
+        Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE);
+        Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE);
+        Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE);
 
-        OrderElement orderElement1 = OrderElement.init(product1, PRODUCT1_QUANTITY);
-        OrderElement orderElement2 = OrderElement.init(product2, PRODUCT2_QUANTITY);
-        OrderElement orderElement3 = OrderElement.init(product3, PRODUCT3_QUANTITY);
+        StockElement stockElement1 = StockElement.init(PRODUCT1_ID, PRODUCT1_STOCK_QUANTITY);
+        StockElement stockElement2 = StockElement.init(PRODUCT2_ID, PRODUCT2_STOCK_QUANTITY);
+        StockElement stockElement3 = StockElement.init(PRODUCT3_ID, PRODUCT3_STOCK_QUANTITY);
 
-        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL);
+        Stock stock1 = new Stock(PRODUCT1_ID, new ArrayList<>(List.of(stockElement1)));
+        Stock stock2 = new Stock(PRODUCT2_ID, new ArrayList<>(List.of(stockElement2)));
+        Stock stock3 = new Stock(PRODUCT3_ID, new ArrayList<>(List.of(stockElement3)));
 
-        Order actual = Order.init(CUSTOMER1_ID, payment.getId(),
-            Map.of(orderElement1.getProductId(), orderElement1, orderElement2.getProductId(),
-                orderElement2, orderElement3.getProductId(), orderElement3));
+        List<OrderElement> orderElementList1 = OrderElement.init(product1, stock1, PRODUCT1_QUANTITY);
+        List<OrderElement> orderElementList2 = OrderElement.init(product2, stock2, PRODUCT2_QUANTITY);
+        List<OrderElement> orderElementList3 = OrderElement.init(product3, stock3, PRODUCT3_QUANTITY);
+
+        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL, Coupon.NONE);
+
+        Map<Long, OrderElement> orderElementMap = Stream.concat(
+                Stream.concat(orderElementList1.stream(), orderElementList2.stream()),
+                orderElementList3.stream())
+            .collect(Collectors.toMap(OrderElement::getProductId, e -> e));
+        Order actual = Order.init(CUSTOMER1_ID, payment.getId(), orderElementMap);
 
         when(customerRepository.existsById(CUSTOMER1_ID)).thenReturn(true);
         when(productRepository.findAllByIds(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID))).thenReturn(List.of(product1, product2, product3));
         when(productRepository.saveAll(anyList())).thenReturn(List.of(product1, product2, product3));
         when(orderRepository.save(any(Order.class))).thenReturn(actual);
         when(payRepository.save(any(Payment.class))).thenAnswer(method -> method.getArguments()[0]);
+        when(stockRepository.findStocksByProductIdsAsMap(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID)))
+            .thenReturn(Stream.of(stock1, stock2, stock3).collect(Collectors.toMap(Stock::getProductId, s -> s)));
 
         // when
         Order test = orderService.makeOrder(orderCreateRequest);
 
         // then
-        assertEquals(product1.getStock().getQuantity(), PRODUCT1_STOCK_QUANTITY - PRODUCT1_QUANTITY);
-        assertEquals(product2.getStock().getQuantity(), PRODUCT2_STOCK_QUANTITY - PRODUCT2_QUANTITY);
-        assertEquals(product3.getStock().getQuantity(), PRODUCT3_STOCK_QUANTITY - PRODUCT3_QUANTITY);
+        assertEquals(stock1.getTotalQuantity(), PRODUCT1_STOCK_QUANTITY - PRODUCT1_QUANTITY);
+        assertEquals(stock2.getTotalQuantity(), PRODUCT2_STOCK_QUANTITY - PRODUCT2_QUANTITY);
+        assertEquals(stock3.getTotalQuantity(), PRODUCT3_STOCK_QUANTITY - PRODUCT3_QUANTITY);
 
         assertEquals(actual, test);
     }
@@ -137,40 +161,50 @@ public class OrderServiceTest {
         // given
         OrderCancelRequest request = new OrderCancelRequest(ORDER1_ID);
 
-        OrderElement orderElement1 = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, false);
-        OrderElement orderElement2 = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, false);
-        OrderElement orderElement3 = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, false);
+        OrderElement orderElement1 = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE,
+            PRODUCT1_QUANTITY, false);
+        OrderElement orderElement2 = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE,
+            PRODUCT2_QUANTITY, false);
+        OrderElement orderElement3 = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE,
+            PRODUCT3_QUANTITY, false);
 
-        Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE, PRODUCT1_STOCK_QUANTITY);
-        Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE, PRODUCT2_STOCK_QUANTITY);
-        Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE, PRODUCT3_STOCK_QUANTITY);
+        StockElement stockElement1 = StockElement.init(PRODUCT1_ID, PRODUCT1_STOCK_QUANTITY);
+        StockElement stockElement2 = StockElement.init(PRODUCT2_ID, PRODUCT2_STOCK_QUANTITY);
+        StockElement stockElement3 = StockElement.init(PRODUCT3_ID, PRODUCT3_STOCK_QUANTITY);
 
+        Stock stock1 = new Stock(PRODUCT1_ID, new ArrayList<>(List.of(stockElement1)));
+        Stock stock2 = new Stock(PRODUCT2_ID, new ArrayList<>(List.of(stockElement2)));
+        Stock stock3 = new Stock(PRODUCT3_ID, new ArrayList<>(List.of(stockElement3)));
 
         Map<Long, OrderElement> elements = Map.of(orderElement1.getProductId(), orderElement1,
             orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
             orderElement3);
 
-        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL);
+        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL, Coupon.NONE);
 
         Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elements);
 
+        OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE,
+            PRODUCT1_QUANTITY, true);
+        OrderElement orderElement2After = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE,
+            PRODUCT2_QUANTITY, true);
+        OrderElement orderElement3After = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE,
+            PRODUCT3_QUANTITY, true);
 
-        OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
-        OrderElement orderElement2After = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, true);
-        OrderElement orderElement3After = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, true);
-
-        Map<Long, OrderElement> elementsAfter = Map.of(orderElement1After.getProductId(), orderElement1After,
-            orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
-            orderElement3After);
+        Map<Long, OrderElement> elementsAfter = Map.of(
+            orderElement1After.getProductId(), orderElement1After,
+            orderElement2After.getProductId(), orderElement2After,
+            orderElement3After.getProductId(), orderElement3After
+        );
 
         Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elementsAfter);
 
         // when
         when(orderRepository.findById(request.getOrderId())).thenReturn(actual);
         when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
-        when(productRepository.findAllByIdsAsMap(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID)))
-            .thenReturn(Map.of(PRODUCT1_ID, product1, PRODUCT2_ID, product2, PRODUCT3_ID, product3));
         when(payRepository.findById(payment.getId())).thenReturn(payment);
+        when(stockRepository.findStocksByProductIdsAsMap(Set.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID)))
+            .thenReturn(Stream.of(stock1, stock2, stock3).collect(Collectors.toMap(Stock::getProductId, s -> s)));
 
         // then
         Order expected = orderService.cancelOrder(request);
@@ -185,48 +219,63 @@ public class OrderServiceTest {
 
         // given
 
-        PayElementDto payElementDto2 = new PayElementDto(PayMethod.NAHA_CARD, PRODUCT2_PRICE * PRODUCT2_QUANTITY);
-        PayElementDto payElementDto3 = new PayElementDto(PayMethod.CASH, PRODUCT3_PRICE * PRODUCT3_QUANTITY);
+        PayElementDto payElementDto2 = new PayElementDto(PayMethod.NAHA_CARD,
+            PRODUCT2_PRICE * PRODUCT2_QUANTITY);
+        PayElementDto payElementDto3 = new PayElementDto(PayMethod.CASH,
+            PRODUCT3_PRICE * PRODUCT3_QUANTITY);
 
         PayElement payElement2 = new NaHaCardPayElement(PRODUCT2_PRICE * PRODUCT2_QUANTITY);
         PayElement payElement3 = new CashPayElement(PRODUCT3_PRICE * PRODUCT3_QUANTITY);
 
-        OrderPartialCancelRequest request = new OrderPartialCancelRequest(ORDER1_ID, List.of(PRODUCT1_ID), List.of(payElementDto2, payElementDto3));
+        OrderPartialCancelRequest request = new OrderPartialCancelRequest(ORDER1_ID,
+            List.of(PRODUCT1_ID), List.of(payElementDto2, payElementDto3));
 
-        OrderElement orderElement1 = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, false);
-        OrderElement orderElement2 = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, false);
-        OrderElement orderElement3 = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, false);
+        OrderElement orderElement1 = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE,
+            PRODUCT1_QUANTITY, false);
+        OrderElement orderElement2 = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE,
+            PRODUCT2_QUANTITY, false);
+        OrderElement orderElement3 = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE,
+            PRODUCT3_QUANTITY, false);
 
-        Product product1 = new Product(PRODUCT1_ID, PRODUCT1_NAME, PRODUCT1_PRICE, PRODUCT1_STOCK_QUANTITY);
-        Product product2 = new Product(PRODUCT2_ID, PRODUCT2_NAME, PRODUCT2_PRICE, PRODUCT2_STOCK_QUANTITY);
-        Product product3 = new Product(PRODUCT3_ID, PRODUCT3_NAME, PRODUCT3_PRICE, PRODUCT3_STOCK_QUANTITY);
+        StockElement stockElement1 = StockElement.init(PRODUCT1_ID, PRODUCT1_STOCK_QUANTITY);
+        StockElement stockElement2 = StockElement.init(PRODUCT2_ID, PRODUCT2_STOCK_QUANTITY);
+        StockElement stockElement3 = StockElement.init(PRODUCT3_ID, PRODUCT3_STOCK_QUANTITY);
+
+        Stock stock1 = new Stock(PRODUCT1_ID, new ArrayList<>(List.of(stockElement1)));
+        Stock stock2 = new Stock(PRODUCT2_ID, new ArrayList<>(List.of(stockElement2)));
+        Stock stock3 = new Stock(PRODUCT3_ID, new ArrayList<>(List.of(stockElement3)));
 
         Map<Long, OrderElement> elements = Map.of(orderElement1.getProductId(), orderElement1,
             orderElement2.getProductId(), orderElement2, orderElement3.getProductId(),
             orderElement3);
 
-        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL);
-        Payment newPayment = new Payment(123L, PayStatus.PAID, List.of(payElement2, payElement3), REQUESTED_AMOUNT_2_3);
+        Payment payment = Payment.init(REQUESTED_AMOUNT_TOTAL, Coupon.NONE);
+        Payment newPayment = new Payment(123L, PayStatus.PAID, List.of(payElement2, payElement3), REQUESTED_AMOUNT_2_3, Coupon.NONE);
 
         Order actual = new Order(ORDER1_ID, CUSTOMER1_ID, payment.getId(), elements);
 
+        OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE,
+            PRODUCT1_QUANTITY, true);
+        OrderElement orderElement2After = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE,
+            PRODUCT2_QUANTITY, false);
+        OrderElement orderElement3After = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE,
+            PRODUCT3_QUANTITY, false);
 
-        OrderElement orderElement1After = new OrderElement(PRODUCT1_ID, PRODUCT1_PRICE, PRODUCT1_QUANTITY, true);
-        OrderElement orderElement2After = new OrderElement(PRODUCT2_ID, PRODUCT2_PRICE, PRODUCT2_QUANTITY, false);
-        OrderElement orderElement3After = new OrderElement(PRODUCT3_ID, PRODUCT3_PRICE, PRODUCT3_QUANTITY, false);
-
-        Map<Long, OrderElement> elementsAfter = Map.of(orderElement1After.getProductId(), orderElement1After,
-            orderElement2After.getProductId(), orderElement2After, orderElement3After.getProductId(),
+        Map<Long, OrderElement> elementsAfter = Map.of(orderElement1After.getProductId(),
+            orderElement1After,
+            orderElement2After.getProductId(), orderElement2After,
+            orderElement3After.getProductId(),
             orderElement3After);
 
-        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, newPayment.getId(), elementsAfter);
+        Order actualOrderAfter = new Order(ORDER1_ID, CUSTOMER1_ID, newPayment.getId(),
+            elementsAfter);
 
         // when
         when(orderRepository.findById(request.getOrderId())).thenReturn(actual);
         when(orderRepository.save(any(Order.class))).thenAnswer(method -> method.getArguments()[0]);
         when(payRepository.findById(actual.getPayId())).thenReturn(payment);
-        when(productRepository.findAllByIdsAsMap(Set.of(PRODUCT1_ID)))
-            .thenReturn(Map.of(PRODUCT1_ID, product1));
+        when(stockRepository.findStocksByProductIdsAsMap(Set.of(PRODUCT1_ID)))
+            .thenReturn(Stream.of(stock1, stock2, stock3).collect(Collectors.toMap(Stock::getProductId, s -> s)));
         when(payRepository.findById(payment.getId())).thenReturn(payment);
 
         // then
