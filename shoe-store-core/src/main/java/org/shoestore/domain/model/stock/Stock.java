@@ -9,16 +9,26 @@ import java.util.Optional;
 public class Stock {
 
     // @Id
-    private final Long productId;
+    private Long productId;
 
-    private final List<StockElement> stockElements;
+    private List<StockElement> stockElements;
 
-    private final List<StockHistory> stockHistories;
+    private List<StockHistory> stockHistories;
+
+    /* Optimistic Lock 적용
+
+    UPDATE Stock
+    SET version = version + 1
+    WHERE product_id = :productId AND version = :prevVersion
+     */
+    private Long version;
+
 
     public Stock(Long productId, List<StockElement> stockElements) {
         this.productId = productId;
         this.stockElements = stockElements;
-        this.stockHistories = new ArrayList<>(); // 생성되는 VO가 처리하는 작업의 history를 저장할 목적.
+        this.stockHistories = new ArrayList<>(); // 처리하는 작업의 history를 저장할 목적.
+        this.version = 1L;
     }
 
     public Stock(Long productId, List<StockElement> stockElements, List<StockHistory> stockHistories) {
@@ -88,8 +98,7 @@ public class Stock {
             }
         }
 
-        return new Stock(this.productId, this.stockElements, this.stockHistories);
-
+        return this;
     }
 
     public Stock restockByOrder(Long orderId, Long quantity) {
@@ -101,7 +110,7 @@ public class Stock {
             this.stockHistories.add(StockHistory.stockInByOrder(orderId, element.getId(), quantity));
         });
 
-        return new Stock(this.productId, getStockElements(), getStockHistories());
+        return this;
     }
 
     public Stock restock(Long quantity) {
@@ -110,7 +119,7 @@ public class Stock {
         getStockElements().add(newElement);
         getStockHistories().add(StockHistory.stockIn(newElement.getId(), quantity));
 
-        return new Stock(this.productId, getStockElements(), getStockHistories());
+        return this;
     }
 
     public StockElement findElementById(Long stockElementId) {
